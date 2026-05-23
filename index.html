@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Glare</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500&family=Geist+Mono:wght@300;400&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="/src/main.css" />
+</head>
+
+<body>
+  <div id="app">
+    <header id="hud">
+      <span id="wordmark">Glare</span>
+      <div id="hudright">
+        <div id="dot"></div>
+        <span id="timer">00:00</span>
+        <button id="recbtn">Record</button>
+        <button id="stopbtn" disabled>Stop</button>
+      </div>
+    </header>
+    <main id="stage">
+      <video id="preview" autoplay muted playsinline></video>
+      <canvas id="lens"></canvas>
+      <div id="hint">Click anywhere to zoom</div>
+    </main>
+    <div id="editor" class="hidden">
+      <video id="playback" controls></video>
+      <footer id="editorbar">
+        <span id="editorlabel">Export as</span>
+        <button id="dlwebm">WebM</button>
+        <button id="dlmp4">MP4</button>
+        <div id="progress" class="hidden">
+          <div id="bar"></div>
+        </div>
+        <button id="again" style="margin-left:auto">New recording</button>
+      </footer>
+    </div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
+</html>
