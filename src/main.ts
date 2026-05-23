@@ -46,6 +46,7 @@ const sval = document.getElementById('sval') as HTMLSpanElement
 const soval = document.getElementById('soval') as HTMLSpanElement
 const zval = document.getElementById('zval') as HTMLSpanElement
 const ival = document.getElementById('ival') as HTMLSpanElement
+const presets = document.querySelectorAll<HTMLButtonElement>('.preset')
 
 let chunks: Blob[] = []
 let rec: MediaRecorder | null = null
@@ -244,6 +245,19 @@ sinput.oninput = () => { sval.textContent = sinput.value; setShad(Number(sinput.
 soinput.oninput = () => { soval.textContent = soinput.value; setShadop(Number(soinput.value)) }
 zinput.oninput = () => { zval.textContent = zinput.value + '×'; setZoomlvl(Number(zinput.value)) }
 iinput.oninput = () => { ival.textContent = iinput.value + '%'; setInset(Number(iinput.value)) }
+
+presets.forEach(button => {
+  button.onclick = () => {
+    presets.forEach(p => p.classList.remove('active'))
+    button.classList.add('active')
+    bgcol1.value = button.dataset.c1 || bgcol1.value
+    bgcol2.value = button.dataset.c2 || bgcol2.value
+    bgang.value = button.dataset.ang || bgang.value
+    bgangval.textContent = bgang.value + '°'
+    setBgCol(bgcol1.value, bgcol2.value)
+    setBgAng(Number(bgang.value))
+  }
+})
 
 document.querySelectorAll('.ratio').forEach(b => {
   (b as HTMLElement).onclick = () => {
