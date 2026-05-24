@@ -8,8 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500&family=Geist+Mono:wght@300;400&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600&family=Geist+Mono:wght@300;400&display=swap"
     rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
@@ -19,90 +20,250 @@
       <div id="hudright">
         <div id="dot"></div>
         <span id="timer">00:00</span>
-        <button id="recbtn">Record</button>
-        <button id="stopbtn" disabled>Stop</button>
+        <button id="recbtn" class="hud-btn">Record</button>
+        <button id="stopbtn" class="hud-btn" disabled>Stop</button>
       </div>
     </header>
+
     <div id="stage">
       <video id="preview" autoplay muted playsinline></video>
       <div id="hint">Click while recording to add zooms</div>
     </div>
+
     <div id="editor" class="gone">
       <div id="editmain">
         <canvas id="output"></canvas>
       </div>
       <div id="sidebar">
-        <div class="block">
-          <span class="lbl">style</span>
-          <div id="presets">
-            <button class="preset active" data-c1="#f8f8f6" data-c2="#eceae5" data-ang="135">Clean</button>
-            <button class="preset" data-c1="#f5f7fb" data-c2="#dfe7f5" data-ang="120">Mist</button>
-            <button class="preset" data-c1="#fff7ed" data-c2="#fde7d1" data-ang="135">Warm</button>
-            <button class="preset" data-c1="#111827" data-c2="#334155" data-ang="140">Slate</button>
+        <div id="tabnav">
+          <button class="tab active" data-tab="background" title="Background">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <rect x="1.5" y="1.5" width="13" height="13" rx="3" stroke="currentColor" stroke-width="1.5" />
+              <circle cx="5.5" cy="5.5" r="1.5" fill="currentColor" />
+              <path d="M1.5 10.5l3.5-3 3 3 2.5-2.5 3.5 3.5" stroke="currentColor" stroke-width="1.4"
+                stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span>BG</span>
+          </button>
+          <button class="tab" data-tab="frame" title="Frame">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <rect x="2" y="2" width="12" height="12" rx="2.5" stroke="currentColor" stroke-width="1.5" />
+              <rect x="5" y="5" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.2" />
+            </svg>
+            <span>Frame</span>
+          </button>
+          <button class="tab" data-tab="zoom" title="Zoom">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <circle cx="6.5" cy="6.5" r="4" stroke="currentColor" stroke-width="1.5" />
+              <path d="M9.5 9.5L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+              <path d="M4.5 6.5h4M6.5 4.5v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+            </svg>
+            <span>Zoom</span>
+          </button>
+          <button class="tab" data-tab="export" title="Export">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M8 2v8M5 7l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                stroke-linejoin="round" />
+              <path d="M2.5 11v1.5A1.5 1.5 0 004 14h8a1.5 1.5 0 001.5-1.5V11" stroke="currentColor" stroke-width="1.5"
+                stroke-linecap="round" />
+            </svg>
+            <span>Export</span>
+          </button>
+        </div>
+
+        <div class="tabpanel active" id="tab-background">
+          <div class="sp-section">
+            <div class="sp-label">Presets</div>
+            <div class="preset-grid">
+              <button class="preset active" data-c1="#f8f8f6" data-c2="#eceae5" data-ang="135">
+                <span class="preset-swatch" style="background:linear-gradient(135deg,#f8f8f6,#eceae5)"></span>
+                <span class="preset-name">Clean</span>
+              </button>
+              <button class="preset" data-c1="#f0f4ff" data-c2="#c7d8ff" data-ang="120">
+                <span class="preset-swatch" style="background:linear-gradient(120deg,#f0f4ff,#c7d8ff)"></span>
+                <span class="preset-name">Mist</span>
+              </button>
+              <button class="preset" data-c1="#fff8f0" data-c2="#ffd6a0" data-ang="140">
+                <span class="preset-swatch" style="background:linear-gradient(140deg,#fff8f0,#ffd6a0)"></span>
+                <span class="preset-name">Warm</span>
+              </button>
+              <button class="preset" data-c1="#0f172a" data-c2="#1e3a5f" data-ang="140">
+                <span class="preset-swatch" style="background:linear-gradient(140deg,#0f172a,#1e3a5f)"></span>
+                <span class="preset-name">Slate</span>
+              </button>
+              <button class="preset" data-c1="#fdf2f8" data-c2="#f0abdb" data-ang="130">
+                <span class="preset-swatch" style="background:linear-gradient(130deg,#fdf2f8,#f0abdb)"></span>
+                <span class="preset-name">Rose</span>
+              </button>
+              <button class="preset" data-c1="#f0fdf4" data-c2="#86efac" data-ang="125">
+                <span class="preset-swatch" style="background:linear-gradient(125deg,#f0fdf4,#86efac)"></span>
+                <span class="preset-name">Mint</span>
+              </button>
+            </div>
           </div>
-          <div class="colorrow">
-            <input type="color" id="bgcol1" value="#f8f8f6" />
-            <span class="lbl" style="margin:0">→</span>
-            <input type="color" id="bgcol2" value="#eceae5" />
+
+          <div class="sp-section">
+            <div class="sp-label">Custom gradient</div>
+            <div class="color-row">
+              <div class="color-slot">
+                <div class="color-preview-wrap">
+                  <input type="color" id="bgcol1" value="#f8f8f6" />
+                  <div class="color-preview" id="colprev1" style="background:#f8f8f6"></div>
+                </div>
+                <span class="color-label">From</span>
+              </div>
+              <div class="color-arrow">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"
+                    stroke-linejoin="round" />
+                </svg>
+              </div>
+              <div class="color-slot">
+                <div class="color-preview-wrap">
+                  <input type="color" id="bgcol2" value="#eceae5" />
+                  <div class="color-preview" id="colprev2" style="background:#eceae5"></div>
+                </div>
+                <span class="color-label">To</span>
+              </div>
+            </div>
           </div>
-          <div class="row" style="margin-top:10px">
-            <span class="lbl" style="margin:0">angle</span>
-            <span class="val" id="bgangval">135°</span>
-          </div>
-          <input type="range" id="bgang" min="0" max="360" value="135" step="1" />
-        </div>
-        <div class="block">
-          <div class="row"><span class="lbl">corner radius</span><span class="val" id="rval">24</span></div>
-          <input type="range" id="rinput" min="0" max="44" value="24" step="1" />
-        </div>
-        <div class="block">
-          <div class="row"><span class="lbl">padding</span><span class="val" id="pval">76</span></div>
-          <input type="range" id="pinput" min="0" max="140" value="76" step="4" />
-        </div>
-        <div class="block">
-          <div class="row"><span class="lbl">shadow blur</span><span class="val" id="sval">46</span></div>
-          <input type="range" id="sinput" min="0" max="100" value="46" step="1" />
-        </div>
-        <div class="block">
-          <div class="row"><span class="lbl">shadow opacity</span><span class="val" id="soval">26</span></div>
-          <input type="range" id="soinput" min="0" max="80" value="26" step="1" />
-        </div>
-        <div class="block">
-          <div class="row"><span class="lbl">zoom level</span><span class="val" id="zval">2.6×</span></div>
-          <input type="range" id="zinput" min="1.2" max="4" value="2.6" step=".1" />
-        </div>
-        <div class="block">
-          <div class="row"><span class="lbl">inset scale</span><span class="val" id="ival">94%</span></div>
-          <input type="range" id="iinput" min="60" max="100" value="94" step="1" />
-        </div>
-        <div class="block">
-          <span class="lbl">aspect ratio</span>
-          <div id="ratios">
-            <button class="ratio active" data-r="16/9">16:9</button>
-            <button class="ratio" data-r="4/3">4:3</button>
-            <button class="ratio" data-r="1/1">1:1</button>
-            <button class="ratio" data-r="9/16">9:16</button>
+
+          <div class="sp-section">
+            <div class="sp-row">
+              <span class="sp-label" style="margin:0">Angle</span>
+              <span class="sp-val" id="bgangval">135°</span>
+            </div>
+            <input type="range" id="bgang" min="0" max="360" value="135" step="1" />
           </div>
         </div>
-        <div class="block">
-          <span class="lbl">export</span>
-          <div id="exportbtns">
-            <button id="dlwebm">WebM</button>
-            <button id="dlmp4">MP4</button>
+
+        <div class="tabpanel" id="tab-frame">
+          <div class="sp-section">
+            <div class="sp-label">Aspect ratio</div>
+            <div class="ratio-grid">
+              <button class="ratio-btn active" data-r="16/9">
+                <span class="ratio-icon r169"></span>
+                <span>16:9</span>
+              </button>
+              <button class="ratio-btn" data-r="original">
+                <span class="ratio-icon rOrig"></span>
+                <span>Original</span>
+              </button>
+              <button class="ratio-btn" data-r="4/3">
+                <span class="ratio-icon r43"></span>
+                <span>4:3</span>
+              </button>
+              <button class="ratio-btn" data-r="1/1">
+                <span class="ratio-icon r11"></span>
+                <span>1:1</span>
+              </button>
+            </div>
           </div>
-          <div id="prog" class="gone">
-            <div id="progbar"></div>
+
+          <div class="sp-section">
+            <div class="sp-row">
+              <span class="sp-label" style="margin:0">Corner radius</span>
+              <span class="sp-val" id="rval">24</span>
+            </div>
+            <input type="range" id="rinput" min="0" max="44" value="24" step="1" />
           </div>
-          <span id="progtxt" class="lbl gone" style="margin-top:6px">preparing...</span>
+
+          <div class="sp-section">
+            <div class="sp-row">
+              <span class="sp-label" style="margin:0">Padding</span>
+              <span class="sp-val" id="pval">76</span>
+            </div>
+            <input type="range" id="pinput" min="0" max="140" value="76" step="4" />
+          </div>
+
+          <div class="sp-section">
+            <div class="sp-row">
+              <span class="sp-label" style="margin:0">Inset scale</span>
+              <span class="sp-val" id="ival">94%</span>
+            </div>
+            <input type="range" id="iinput" min="60" max="100" value="94" step="1" />
+          </div>
+
+          <div class="sp-section">
+            <div class="sp-label">Shadow</div>
+            <div class="sp-row" style="margin-top:6px">
+              <span class="sp-sublabel">Blur</span>
+              <span class="sp-val" id="sval">46</span>
+            </div>
+            <input type="range" id="sinput" min="0" max="100" value="46" step="1" />
+            <div class="sp-row" style="margin-top:10px">
+              <span class="sp-sublabel">Opacity</span>
+              <span class="sp-val" id="soval">26</span>
+            </div>
+            <input type="range" id="soinput" min="0" max="80" value="26" step="1" />
+          </div>
         </div>
-        <button id="again">New recording</button>
+
+        <div class="tabpanel" id="tab-zoom">
+          <div class="sp-section">
+            <div class="sp-row">
+              <span class="sp-label" style="margin:0">Zoom level</span>
+              <span class="sp-val" id="zval">2.6×</span>
+            </div>
+            <input type="range" id="zinput" min="1.2" max="4" value="2.6" step=".1" />
+            <div class="sp-hint">Click the canvas or timeline to place zooms. Click a zoom pill to delete it.</div>
+          </div>
+          <div class="sp-section">
+            <div class="sp-label">Zoom count</div>
+            <div class="zoom-stat"><span id="zcount">0 zooms</span></div>
+          </div>
+        </div>
+
+        <div class="tabpanel" id="tab-export">
+          <div class="sp-section">
+            <div class="sp-label">Download</div>
+            <div class="export-btns">
+              <button id="dlwebm" class="export-btn">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M7 1.5v7M4.5 6l2.5 2.5L9.5 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"
+                    stroke-linejoin="round" />
+                  <path d="M2 10.5v1A1.5 1.5 0 003.5 13h7a1.5 1.5 0 001.5-1.5v-1" stroke="currentColor"
+                    stroke-width="1.4" stroke-linecap="round" />
+                </svg>
+                <span>WebM</span>
+                <span class="export-badge">Fast</span>
+              </button>
+              <button id="dlmp4" class="export-btn export-primary">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M7 1.5v7M4.5 6l2.5 2.5L9.5 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"
+                    stroke-linejoin="round" />
+                  <path d="M2 10.5v1A1.5 1.5 0 003.5 13h7a1.5 1.5 0 001.5-1.5v-1" stroke="currentColor"
+                    stroke-width="1.4" stroke-linecap="round" />
+                </svg>
+                <span>MP4</span>
+                <span class="export-badge">Compatible</span>
+              </button>
+            </div>
+            <div id="prog" class="gone">
+              <div id="progbar"></div>
+            </div>
+            <span id="progtxt" class="sp-hint gone" style="margin-top:8px;display:block">preparing...</span>
+          </div>
+          <div class="sp-section">
+            <button id="again" class="new-rec-btn">
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.4" />
+                <circle cx="6.5" cy="6.5" r="2" fill="currentColor" />
+              </svg>
+              New recording
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
+
     <div id="tline" class="gone">
       <div id="tbar">
         <button id="playbtn">Play</button>
         <span id="tcode">0:00 / 0:00</span>
-        <button id="addzoom">Add zoom</button>
+        <span id="zcount-pill">0 zooms</span>
+        <button id="addzoom">+ Add zoom</button>
       </div>
       <div id="track">
         <div id="wave"></div>
