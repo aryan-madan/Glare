@@ -4,6 +4,9 @@ import { initEditor, setBgCol, setBgAng, setRad, setPad, setShad, setShadop, set
 import type { Zoom } from './editor'
 import { dlWebm, toMp4 } from './export'
 
+import { createIcons, Image, Frame, ZoomIn, Download, ArrowRight, RotateCcw } from 'lucide';
+createIcons({ icons: { Image, Frame, ZoomIn, Download, ArrowRight, RotateCcw } });
+
 const preview = document.getElementById('preview') as HTMLVideoElement
 const output = document.getElementById('output') as HTMLCanvasElement
 const recbtn = document.getElementById('recbtn') as HTMLButtonElement
