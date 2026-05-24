@@ -16,6 +16,7 @@ let zoomlvl = 2.6
 let inset = 94
 let ratio = 16 / 9
 let zooms: Zoom[] = []
+const shutter = 1 / 35
 
 export function initEditor(c: HTMLCanvasElement, s: HTMLVideoElement): void {
   cv = c; ctx = c.getContext('2d')!; src = s; updateSize()
@@ -115,13 +116,17 @@ export function draw(time = src?.currentTime || 0): void {
     ctx.restore()
   }
 
-  ctx.save()
-  applyCameraTransform(camera, W, H)
-  rrect(ix, iy, iw, ih, rad)
-  ctx.clip()
-  if (src.readyState >= 2) ctx.drawImage(src, ix, iy, iw, ih)
-  else { ctx.fillStyle = '#111'; ctx.fillRect(ix, iy, iw, ih) }
-  ctx.restore()
+  const frames = getMotionFrames(time, W, H)
+  frames.forEach((frame, idx) => {
+    ctx.save()
+    ctx.globalAlpha = idx === 0 ? 1 : frame.alpha
+    applyCameraTransform(frame.camera, W, H)
+    rrect(ix, iy, iw, ih, rad)
+    ctx.clip()
+    if (src.readyState >= 2) ctx.drawImage(src, ix, iy, iw, ih)
+    else { ctx.fillStyle = '#111'; ctx.fillRect(ix, iy, iw, ih) }
+    ctx.restore()
+  })
 
   ctx.save()
   applyCameraTransform(camera, W, H)
@@ -139,6 +144,25 @@ function applyCameraTransform(camera: Camera, W: number, H: number): void {
   ctx.translate(focalX, focalY)
   ctx.scale(camera.scale, camera.scale)
   ctx.translate(-focalX, -focalY)
+}
+
+function getMotionFrames(time: number, W: number, H: number): { camera: Camera; alpha: number }[] {
+  const prev = getCamera(time - shutter / 2)
+  const next = getCamera(time + shutter / 2)
+  const move = Math.hypot((next.nx - prev.nx) * W, (next.ny - prev.ny) * H)
+  const zoom = Math.abs(next.scale - prev.scale) * Math.max(W, H)
+  const current = getCamera(time)
+  if (move + zoom < 2) return [{ camera: current, alpha: 1 }]
+
+  const count = 7
+  const alpha = .11
+  return [
+    { camera: current, alpha: 1 },
+    ...Array.from({ length: count }, (_, i) => ({
+      camera: getCamera(time + (i / (count - 1) - .5) * shutter),
+      alpha
+    }))
+  ]
 }
 
 function getCamera(time: number): Camera {

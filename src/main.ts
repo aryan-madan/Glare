@@ -153,7 +153,7 @@ function buildWave(): void {
   wave.innerHTML = ''
   for (let i = 0; i < 130; i++) {
     const d = document.createElement('div')
-    d.className = 'wb'
+    d.className = 'wb min-w-0 flex-[1_1_0] rounded-[0.5px] bg-[#222225]'
     d.style.height = (12 + Math.random() * 64) + '%'
     wave.appendChild(d)
   }
@@ -199,16 +199,16 @@ function syncZdots(): void {
     const widthPct = dur ? (z.dur / dur * 100) : 0
 
     const pill = document.createElement('div')
-    pill.className = 'zdot'
+    pill.className = 'zdot pointer-events-auto absolute top-1/2 h-2 min-w-2 translate-y-[-50%] rotate-45 cursor-pointer rounded-[0.5px] border-[0.5px] border-black/50 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.5)]'
     pill.style.left = startPct + '%'
     pill.style.width = Math.max(widthPct, 1.2) + '%'
 
     const del = document.createElement('div')
-    del.className = 'zdot-del'
+    del.className = 'zdot-del pointer-events-none absolute top-[-24px] left-1/2 -translate-x-1/2 rotate-[-45deg] whitespace-nowrap rounded-[3px] border-[0.5px] border-line-3 bg-panel-2 px-[5px] py-px text-[9.5px] text-text opacity-0 shadow-[0_2px_8px_rgba(0,0,0,0.4)] transition-opacity duration-[80ms] ease-[ease]'
     del.textContent = 'Click to delete'
 
     const handle = document.createElement('div')
-    handle.className = 'zdot-resize'
+    handle.className = 'zdot-resize absolute top-[-2px] right-[-2px] bottom-[-2px] w-[5px] cursor-ew-resize'
     handle.addEventListener('mousedown', e => {
       e.stopPropagation(); e.preventDefault()
       const trackRect = track.getBoundingClientRect()
