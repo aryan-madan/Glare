@@ -14,6 +14,10 @@ let shad = 46
 let shadop = 26
 let zoomlvl = 2.6
 let inset = 94
+let strokeop = 6
+let vignette = 0
+let grain = 0
+let motion = 55
 let ratio = 16 / 9
 let zooms: Zoom[] = []
 const shutter = 1 / 35
@@ -53,6 +57,10 @@ export function setShad(n: number): void { shad = n; draw() }
 export function setShadop(n: number): void { shadop = n; draw() }
 export function setZoomlvl(n: number): void { zoomlvl = n }
 export function setInset(n: number): void { inset = n; draw() }
+export function setStrokeop(n: number): void { strokeop = n; draw() }
+export function setVignette(n: number): void { vignette = n; draw() }
+export function setGrain(n: number): void { grain = n; draw() }
+export function setMotion(n: number): void { motion = n; draw() }
 export function setRatio(r: number | 'original'): void {
   if (r === 'original') {
     ratio = src.videoWidth && src.videoHeight
@@ -131,10 +139,32 @@ export function draw(time = src?.currentTime || 0): void {
   ctx.save()
   applyCameraTransform(camera, W, H)
   rrect(ix + .5, iy + .5, iw - 1, ih - 1, rad)
-  ctx.strokeStyle = 'rgba(255,255,255,.06)'
+  ctx.strokeStyle = `rgba(255,255,255,${strokeop / 100})`
   ctx.lineWidth = 1.5
   ctx.stroke()
   ctx.restore()
+
+  if (vignette > 0) {
+    const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .18, W / 2, H / 2, Math.max(W, H) * .72)
+    g.addColorStop(0, 'rgba(0,0,0,0)')
+    g.addColorStop(1, `rgba(0,0,0,${vignette / 100 * .42})`)
+    ctx.fillStyle = g
+    ctx.fillRect(0, 0, W, H)
+  }
+
+  if (grain > 0) {
+    ctx.save()
+    ctx.globalAlpha = grain / 100 * .12
+    ctx.fillStyle = '#000'
+    const step = Math.max(2, Math.round(Math.min(W, H) / 240))
+    for (let y = 0; y < H; y += step * 7) {
+      for (let x = 0; x < W; x += step * 7) {
+        const n = Math.sin((x * 12.9898 + y * 78.233 + Math.floor(time * 24) * 37.719)) * 43758.5453
+        if (n - Math.floor(n) > .54) ctx.fillRect(x, y, step, step)
+      }
+    }
+    ctx.restore()
+  }
 }
 
 function applyCameraTransform(camera: Camera, W: number, H: number): void {
@@ -147,19 +177,21 @@ function applyCameraTransform(camera: Camera, W: number, H: number): void {
 }
 
 function getMotionFrames(time: number, W: number, H: number): { camera: Camera; alpha: number }[] {
+  const current = getCamera(time)
+  if (motion <= 0) return [{ camera: current, alpha: 1 }]
   const prev = getCamera(time - shutter / 2)
   const next = getCamera(time + shutter / 2)
   const move = Math.hypot((next.nx - prev.nx) * W, (next.ny - prev.ny) * H)
   const zoom = Math.abs(next.scale - prev.scale) * Math.max(W, H)
-  const current = getCamera(time)
   if (move + zoom < 2) return [{ camera: current, alpha: 1 }]
 
-  const count = 7
-  const alpha = .11
+  const count = Math.round(3 + motion / 14)
+  const alpha = motion / 100 * .18
+  const span = shutter * (.35 + motion / 100 * .9)
   return [
     { camera: current, alpha: 1 },
     ...Array.from({ length: count }, (_, i) => ({
-      camera: getCamera(time + (i / (count - 1) - .5) * shutter),
+      camera: getCamera(time + (i / (count - 1) - .5) * span),
       alpha
     }))
   ]

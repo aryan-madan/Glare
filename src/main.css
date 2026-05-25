@@ -45,7 +45,8 @@
   }
 
   #dot.on {
-    @apply bg-red shadow-[0_0_0_2px_rgba(255,69,58,0.25)];
+    @apply bg-red;
+    box-shadow: 0 0 0 2px rgba(255, 69, 58, 0.25);
   }
 
   #hint.on {
@@ -84,6 +85,10 @@
 
   .ratio-btn.active {
     @apply border-white/40 bg-panel-3 text-text;
+  }
+
+  .speed-btn.active {
+    @apply bg-panel-3 text-text;
   }
 
   input[type=range] {

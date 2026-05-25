@@ -1,6 +1,6 @@
 import './main.css'
 import { startCapture, stopCapture } from './capture'
-import { initEditor, setBgCol, setBgAng, setRad, setPad, setShad, setShadop, setZoomlvl, setInset, setRatio, setZooms, draw } from './editor'
+import { initEditor, setBgCol, setBgAng, setRad, setPad, setShad, setShadop, setZoomlvl, setInset, setStrokeop, setVignette, setGrain, setMotion, setRatio, setZooms, draw } from './editor'
 import type { Zoom } from './editor'
 import { dlWebm, toMp4 } from './export'
 
@@ -14,8 +14,10 @@ const stopbtn = document.getElementById('stopbtn') as HTMLButtonElement
 const again = document.getElementById('again') as HTMLButtonElement
 const dlwebm = document.getElementById('dlwebm') as HTMLButtonElement
 const dlmp4 = document.getElementById('dlmp4') as HTMLButtonElement
+const dlpng = document.getElementById('dlpng') as HTMLButtonElement
 const playbtn = document.getElementById('playbtn') as HTMLButtonElement
 const addzoom = document.getElementById('addzoom') as HTMLButtonElement
+const clearzooms = document.getElementById('clearzooms') as HTMLButtonElement
 const dot = document.getElementById('dot') as HTMLDivElement
 const timerEl = document.getElementById('timer') as HTMLSpanElement
 const tcode = document.getElementById('tcode') as HTMLSpanElement
@@ -45,12 +47,22 @@ const sinput = document.getElementById('sinput') as HTMLInputElement
 const soinput = document.getElementById('soinput') as HTMLInputElement
 const zinput = document.getElementById('zinput') as HTMLInputElement
 const iinput = document.getElementById('iinput') as HTMLInputElement
+const binput = document.getElementById('binput') as HTMLInputElement
+const vinput = document.getElementById('vinput') as HTMLInputElement
+const ginput = document.getElementById('ginput') as HTMLInputElement
+const dinput = document.getElementById('dinput') as HTMLInputElement
+const minput = document.getElementById('minput') as HTMLInputElement
 const rval = document.getElementById('rval') as HTMLSpanElement
 const pval = document.getElementById('pval') as HTMLSpanElement
 const sval = document.getElementById('sval') as HTMLSpanElement
 const soval = document.getElementById('soval') as HTMLSpanElement
 const zval = document.getElementById('zval') as HTMLSpanElement
 const ival = document.getElementById('ival') as HTMLSpanElement
+const bval = document.getElementById('bval') as HTMLSpanElement
+const vval = document.getElementById('vval') as HTMLSpanElement
+const gval = document.getElementById('gval') as HTMLSpanElement
+const dval = document.getElementById('dval') as HTMLSpanElement
+const mval = document.getElementById('mval') as HTMLSpanElement
 const colprev1 = document.getElementById('colprev1') as HTMLDivElement
 const colprev2 = document.getElementById('colprev2') as HTMLDivElement
 
@@ -68,6 +80,8 @@ let raf = 0
 let lastZoomTarget = { nx: .5, ny: .5 }
 let zoomDrag: { idx: number; startX: number; origDur: number } | null = null
 let nativeRatio = 16 / 9
+let zoomDur = 2.2
+let playrate = 1
 
 document.querySelectorAll<HTMLButtonElement>('.tab').forEach(btn => {
   btn.onclick = () => {
@@ -124,7 +138,7 @@ preview.addEventListener('click', e => {
     t: (Date.now() - recstart) / 1000,
     nx: (e.clientX - rect.left) / rect.width,
     ny: (e.clientY - rect.top) / rect.height,
-    dur: 2.22
+    dur: zoomDur
   })
 })
 
@@ -137,6 +151,7 @@ function openEditor(): void {
   vid.onended = () => { playbtn.textContent = 'Play' }
   vid.onloadedmetadata = () => {
     nativeRatio = vid!.videoWidth / vid!.videoHeight
+    vid!.playbackRate = playrate
     initEditor(output, vid!)
     buildWave()
     setZooms(zooms)
@@ -296,6 +311,11 @@ sinput.oninput = () => { sval.textContent = sinput.value; setShad(Number(sinput.
 soinput.oninput = () => { soval.textContent = soinput.value; setShadop(Number(soinput.value)) }
 zinput.oninput = () => { zval.textContent = zinput.value + '×'; setZoomlvl(Number(zinput.value)) }
 iinput.oninput = () => { ival.textContent = iinput.value + '%'; setInset(Number(iinput.value)) }
+binput.oninput = () => { bval.textContent = binput.value + '%'; setStrokeop(Number(binput.value)) }
+vinput.oninput = () => { vval.textContent = vinput.value + '%'; setVignette(Number(vinput.value)) }
+ginput.oninput = () => { gval.textContent = ginput.value + '%'; setGrain(Number(ginput.value)) }
+dinput.oninput = () => { zoomDur = Number(dinput.value); dval.textContent = zoomDur.toFixed(1) + 's' }
+minput.oninput = () => { mval.textContent = minput.value + '%'; setMotion(Number(minput.value)) }
 
 document.querySelectorAll<HTMLButtonElement>('.preset').forEach(btn => {
   btn.onclick = () => {
@@ -355,6 +375,22 @@ dlmp4.onclick = async () => {
   }
 }
 
+dlpng.onclick = async () => {
+  if (vid) draw(vid.currentTime)
+  dlpng.disabled = true
+  try {
+    const blob = await new Promise<Blob | null>(resolve => output.toBlob(resolve, 'image/png'))
+    if (!blob) return
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `glare-frame-${Date.now()}.png`
+    a.click()
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+  } finally {
+    dlpng.disabled = false
+  }
+}
+
 function pickMime(): string {
   return ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
     .find(t => MediaRecorder.isTypeSupported(t)) || ''
@@ -395,10 +431,32 @@ async function renderEditedBlob(): Promise<Blob> {
 function addZoomAt(nx: number, ny: number): void {
   if (!vid) return
   lastZoomTarget = { nx, ny }
-  zooms.push({ t: vid.currentTime, nx, ny, dur: 2.22 })
+  zooms.push({ t: vid.currentTime, nx, ny, dur: zoomDur })
   zooms.sort((a, b) => a.t - b.t)
   setZooms(zooms); syncZdots(); draw(vid.currentTime)
 }
+
+clearzooms.onclick = () => {
+  zooms = []
+  setZooms(zooms)
+  syncZdots()
+  if (vid) draw(vid.currentTime)
+}
+
+document.querySelectorAll<HTMLButtonElement>('.speed-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'))
+    btn.classList.add('active')
+    document.querySelectorAll('.speed-btn').forEach(b => {
+      b.classList.toggle('bg-panel-3', b === btn)
+      b.classList.toggle('text-text', b === btn)
+      b.classList.toggle('bg-[#0a0a0b]', b !== btn)
+      b.classList.toggle('text-text-3', b !== btn)
+    })
+    playrate = Number(btn.dataset.speed || 1)
+    if (vid) vid.playbackRate = playrate
+  }
+})
 
 function seekTo(time: number): Promise<void> {
   return new Promise(resolve => {

@@ -18,15 +18,23 @@
       <span id="wordmark" class="text-[11.5px] font-semibold text-white/90 tracking-[-0.1px]">Glare</span>
       <div id="hudright" class="flex items-center gap-1.5">
         <div id="dot" class="h-[5px] w-[5px] rounded-full bg-line-3 transition-all duration-[120ms] ease-[ease]"></div>
-        <span id="timer" class="grid h-5 min-w-11 place-items-center font-mono text-[10.5px] text-text-2 tabular-nums">00:00</span>
-        <button id="recbtn" class="hud-btn h-[22px] cursor-default rounded border-[0.5px] border-black/40 bg-white px-[9px] text-[11px] font-medium text-[#0a0d10] shadow-[0_1px_1px_rgba(0,0,0,0.2)] transition-[background,border-color] duration-[80ms] hover:enabled:bg-[#e5e5ea] active:enabled:bg-[#aeaeb2] disabled:opacity-25 disabled:shadow-none">Record</button>
-        <button id="stopbtn" class="hud-btn h-[22px] cursor-default rounded border-[0.5px] border-black/50 bg-[linear-gradient(180deg,#2c2c2e_0%,#222224_100%)] px-[9px] text-[11px] font-normal text-white/85 shadow-[0_1px_1px_rgba(0,0,0,0.2)] transition-[background,border-color] duration-[80ms] hover:enabled:bg-[linear-gradient(180deg,#3a3a3c_0%,#2c2c2e_100%)] active:enabled:bg-[#1c1c1e] disabled:opacity-25 disabled:shadow-none" disabled>Stop</button>
+        <span id="timer"
+          class="grid h-5 min-w-11 place-items-center font-mono text-[10.5px] text-text-2 tabular-nums">00:00</span>
+        <button id="recbtn"
+          class="hud-btn h-[22px] cursor-default rounded border-[0.5px] border-black/40 bg-white px-[9px] text-[11px] font-medium text-[#0a0d10] shadow-[0_1px_1px_rgba(0,0,0,0.2)] transition-[background,border-color] duration-[80ms] hover:enabled:bg-[#e5e5ea] active:enabled:bg-[#aeaeb2] disabled:opacity-25 disabled:shadow-none">Record</button>
+        <button id="stopbtn"
+          class="hud-btn h-[22px] cursor-default rounded border-[0.5px] border-black/50 bg-[linear-gradient(180deg,#2c2c2e_0%,#222224_100%)] px-[9px] text-[11px] font-normal text-white/85 shadow-[0_1px_1px_rgba(0,0,0,0.2)] transition-[background,border-color] duration-[80ms] hover:enabled:bg-[linear-gradient(180deg,#3a3a3c_0%,#2c2c2e_100%)] active:enabled:bg-[#1c1c1e] disabled:opacity-25 disabled:shadow-none"
+          disabled>Stop</button>
       </div>
     </header>
 
     <div id="stage" class="relative grid min-h-0 flex-1 place-items-center bg-[#060607]">
-      <video id="preview" class="h-[calc(100%-48px)] w-[calc(100%-48px)] rounded-lg bg-black object-contain shadow-glare" autoplay muted playsinline></video>
-      <div id="hint" class="pointer-events-none absolute bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded border-[0.5px] border-line-2 bg-panel-2 px-2.5 py-1 text-[10.5px] text-text-2 opacity-0 shadow-[0_4px_16px_rgba(0,0,0,0.4)] transition-opacity duration-[120ms] ease-[ease]">Click while recording to add zooms</div>
+      <video id="preview"
+        class="h-[calc(100%-48px)] w-[calc(100%-48px)] rounded-lg bg-black object-contain shadow-glare" autoplay muted
+        playsinline></video>
+      <div id="hint"
+        class="pointer-events-none absolute bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded border-[0.5px] border-line-2 bg-panel-2 px-2.5 py-1 text-[10.5px] text-text-2 opacity-0 shadow-[0_4px_16px_rgba(0,0,0,0.4)] transition-opacity duration-[120ms] ease-[ease]">
+        Click while recording to add zooms</div>
     </div>
 
     <div id="editor" class="gone grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_240px]">
@@ -35,19 +43,27 @@
       </div>
       <div id="sidebar" class="flex min-h-0 flex-col overflow-hidden border-l border-line bg-panel">
         <div id="tabnav" class="grid shrink-0 grid-cols-4 border-b border-line bg-[#111112]">
-          <button class="tab active flex cursor-default flex-col items-center justify-center gap-[3px] border-0 border-r border-line bg-transparent px-0.5 py-2 text-[9.5px] font-medium text-white/35 transition-[color,background] duration-[80ms] hover:bg-white/[0.005] hover:text-text-2 [&_svg]:shrink-0 [&_svg]:scale-90" data-tab="background" title="Background">
+          <button
+            class="tab active flex cursor-default flex-col items-center justify-center gap-[3px] border-0 border-r border-line bg-transparent px-0.5 py-2 text-[9.5px] font-medium text-white/35 transition-[color,background] duration-[80ms] hover:bg-white/[0.005] hover:text-text-2 [&_svg]:shrink-0 [&_svg]:scale-90"
+            data-tab="background" title="Background">
             <i data-lucide="image"></i>
             <span>BG</span>
           </button>
-          <button class="tab flex cursor-default flex-col items-center justify-center gap-[3px] border-0 border-r border-line bg-transparent px-0.5 py-2 text-[9.5px] font-medium text-white/35 transition-[color,background] duration-[80ms] hover:bg-white/[0.005] hover:text-text-2 [&_svg]:shrink-0 [&_svg]:scale-90" data-tab="frame" title="Frame">
+          <button
+            class="tab flex cursor-default flex-col items-center justify-center gap-[3px] border-0 border-r border-line bg-transparent px-0.5 py-2 text-[9.5px] font-medium text-white/35 transition-[color,background] duration-[80ms] hover:bg-white/[0.005] hover:text-text-2 [&_svg]:shrink-0 [&_svg]:scale-90"
+            data-tab="frame" title="Frame">
             <i data-lucide="frame"></i>
             <span>Frame</span>
           </button>
-          <button class="tab flex cursor-default flex-col items-center justify-center gap-[3px] border-0 border-r border-line bg-transparent px-0.5 py-2 text-[9.5px] font-medium text-white/35 transition-[color,background] duration-[80ms] hover:bg-white/[0.005] hover:text-text-2 [&_svg]:shrink-0 [&_svg]:scale-90" data-tab="zoom" title="Zoom">
+          <button
+            class="tab flex cursor-default flex-col items-center justify-center gap-[3px] border-0 border-r border-line bg-transparent px-0.5 py-2 text-[9.5px] font-medium text-white/35 transition-[color,background] duration-[80ms] hover:bg-white/[0.005] hover:text-text-2 [&_svg]:shrink-0 [&_svg]:scale-90"
+            data-tab="zoom" title="Zoom">
             <i data-lucide="zoom-in"></i>
             <span>Zoom</span>
           </button>
-          <button class="tab flex cursor-default flex-col items-center justify-center gap-[3px] border-0 bg-transparent px-0.5 py-2 text-[9.5px] font-medium text-white/35 transition-[color,background] duration-[80ms] hover:bg-white/[0.005] hover:text-text-2 [&_svg]:shrink-0 [&_svg]:scale-90" data-tab="export" title="Export">
+          <button
+            class="tab flex cursor-default flex-col items-center justify-center gap-[3px] border-0 bg-transparent px-0.5 py-2 text-[9.5px] font-medium text-white/35 transition-[color,background] duration-[80ms] hover:bg-white/[0.005] hover:text-text-2 [&_svg]:shrink-0 [&_svg]:scale-90"
+            data-tab="export" title="Export">
             <i data-lucide="download"></i>
             <span>Export</span>
           </button>
@@ -57,40 +73,68 @@
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
             <div class="sp-label mb-2 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Presets</div>
             <div class="preset-grid grid grid-cols-3 gap-[5px]">
-              <button class="preset active flex cursor-default flex-col items-center gap-1 rounded border-[0.5px] border-transparent bg-panel-2 p-1 transition-[border-color,background] duration-[80ms] hover:bg-panel-3" data-c1="#f8f8f6" data-c2="#eceae5" data-ang="135">
-                <span class="preset-swatch block h-[26px] w-full rounded-[3px] shadow-[inset_0_0_0_0.5px_rgba(255,255,255,0.03)]" style="background:linear-gradient(135deg,#f8f8f6,#eceae5)"></span>
+              <button
+                class="preset active flex cursor-default flex-col items-center gap-1 rounded border-[0.5px] border-transparent bg-panel-2 p-1 transition-[border-color,background] duration-[80ms] hover:bg-panel-3"
+                data-c1="#f8f8f6" data-c2="#eceae5" data-ang="135">
+                <span
+                  class="preset-swatch block h-[26px] w-full rounded-[3px] shadow-[inset_0_0_0_0.5px_rgba(255,255,255,0.03)]"
+                  style="background:linear-gradient(135deg,#f8f8f6,#eceae5)"></span>
                 <span class="preset-name text-[9.5px] font-normal text-white/40">Light</span>
               </button>
-              <button class="preset flex cursor-default flex-col items-center gap-1 rounded border-[0.5px] border-transparent bg-panel-2 p-1 transition-[border-color,background] duration-[80ms] hover:bg-panel-3" data-c1="#f7fbff" data-c2="#b8d8ff" data-ang="125">
-                <span class="preset-swatch block h-[26px] w-full rounded-[3px] shadow-[inset_0_0_0_0.5px_rgba(255,255,255,0.03)]" style="background:linear-gradient(125deg,#f7fbff,#b8d8ff)"></span>
+              <button
+                class="preset flex cursor-default flex-col items-center gap-1 rounded border-[0.5px] border-transparent bg-panel-2 p-1 transition-[border-color,background] duration-[80ms] hover:bg-panel-3"
+                data-c1="#f7fbff" data-c2="#b8d8ff" data-ang="125">
+                <span
+                  class="preset-swatch block h-[26px] w-full rounded-[3px] shadow-[inset_0_0_0_0.5px_rgba(255,255,255,0.03)]"
+                  style="background:linear-gradient(125deg,#f7fbff,#b8d8ff)"></span>
                 <span class="preset-name text-[9.5px] font-normal text-white/40">Glass</span>
               </button>
-              <button class="preset flex cursor-default flex-col items-center gap-1 rounded border-[0.5px] border-transparent bg-panel-2 p-1 transition-[border-color,background] duration-[80ms] hover:bg-panel-3" data-c1="#fff7ed" data-c2="#fbbf77" data-ang="135">
-                <span class="preset-swatch block h-[26px] w-full rounded-[3px] shadow-[inset_0_0_0_0.5px_rgba(255,255,255,0.03)]" style="background:linear-gradient(135deg,#fff7ed,#fbbf77)"></span>
+              <button
+                class="preset flex cursor-default flex-col items-center gap-1 rounded border-[0.5px] border-transparent bg-panel-2 p-1 transition-[border-color,background] duration-[80ms] hover:bg-panel-3"
+                data-c1="#fff7ed" data-c2="#fbbf77" data-ang="135">
+                <span
+                  class="preset-swatch block h-[26px] w-full rounded-[3px] shadow-[inset_0_0_0_0.5px_rgba(255,255,255,0.03)]"
+                  style="background:linear-gradient(135deg,#fff7ed,#fbbf77)"></span>
                 <span class="preset-name text-[9.5px] font-normal text-white/40">Amber</span>
               </button>
-              <button class="preset flex cursor-default flex-col items-center gap-1 rounded border-[0.5px] border-transparent bg-panel-2 p-1 transition-[border-color,background] duration-[80ms] hover:bg-panel-3" data-c1="#101214" data-c2="#2a3036" data-ang="145">
-                <span class="preset-swatch block h-[26px] w-full rounded-[3px] shadow-[inset_0_0_0_0.5px_rgba(255,255,255,0.03)]" style="background:linear-gradient(145deg,#101214,#2a3036)"></span>
+              <button
+                class="preset flex cursor-default flex-col items-center gap-1 rounded border-[0.5px] border-transparent bg-panel-2 p-1 transition-[border-color,background] duration-[80ms] hover:bg-panel-3"
+                data-c1="#101214" data-c2="#2a3036" data-ang="145">
+                <span
+                  class="preset-swatch block h-[26px] w-full rounded-[3px] shadow-[inset_0_0_0_0.5px_rgba(255,255,255,0.03)]"
+                  style="background:linear-gradient(145deg,#101214,#2a3036)"></span>
                 <span class="preset-name text-[9.5px] font-normal text-white/40">Graphite</span>
               </button>
-              <button class="preset flex cursor-default flex-col items-center gap-1 rounded border-[0.5px] border-transparent bg-panel-2 p-1 transition-[border-color,background] duration-[80ms] hover:bg-panel-3" data-c1="#fff1f2" data-c2="#fb7185" data-ang="130">
-                <span class="preset-swatch block h-[26px] w-full rounded-[3px] shadow-[inset_0_0_0_0.5px_rgba(255,255,255,0.03)]" style="background:linear-gradient(130deg,#fff1f2,#fb7185)"></span>
+              <button
+                class="preset flex cursor-default flex-col items-center gap-1 rounded border-[0.5px] border-transparent bg-panel-2 p-1 transition-[border-color,background] duration-[80ms] hover:bg-panel-3"
+                data-c1="#fff1f2" data-c2="#fb7185" data-ang="130">
+                <span
+                  class="preset-swatch block h-[26px] w-full rounded-[3px] shadow-[inset_0_0_0_0.5px_rgba(255,255,255,0.03)]"
+                  style="background:linear-gradient(130deg,#fff1f2,#fb7185)"></span>
                 <span class="preset-name text-[9.5px] font-normal text-white/40">Coral</span>
               </button>
-              <button class="preset flex cursor-default flex-col items-center gap-1 rounded border-[0.5px] border-transparent bg-panel-2 p-1 transition-[border-color,background] duration-[80ms] hover:bg-panel-3" data-c1="#ecfdf5" data-c2="#34d399" data-ang="125">
-                <span class="preset-swatch block h-[26px] w-full rounded-[3px] shadow-[inset_0_0_0_0.5px_rgba(255,255,255,0.03)]" style="background:linear-gradient(125deg,#ecfdf5,#34d399)"></span>
+              <button
+                class="preset flex cursor-default flex-col items-center gap-1 rounded border-[0.5px] border-transparent bg-panel-2 p-1 transition-[border-color,background] duration-[80ms] hover:bg-panel-3"
+                data-c1="#ecfdf5" data-c2="#34d399" data-ang="125">
+                <span
+                  class="preset-swatch block h-[26px] w-full rounded-[3px] shadow-[inset_0_0_0_0.5px_rgba(255,255,255,0.03)]"
+                  style="background:linear-gradient(125deg,#ecfdf5,#34d399)"></span>
                 <span class="preset-name text-[9.5px] font-normal text-white/40">Jade</span>
               </button>
             </div>
           </div>
 
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
-            <div class="sp-label mb-2 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Custom gradient</div>
+            <div class="sp-label mb-2 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Custom
+              gradient</div>
             <div class="color-row flex items-center gap-1.5">
               <div class="color-slot flex flex-1 flex-col items-center gap-1">
-                <div class="color-preview-wrap relative h-6 w-full cursor-default overflow-hidden rounded border-[0.5px] border-line-2">
-                  <input class="absolute inset-0 h-full w-full cursor-pointer border-0 p-0 opacity-0" type="color" id="bgcol1" value="#f8f8f6" />
-                  <div class="color-preview pointer-events-none absolute inset-0" id="colprev1" style="background:#f8f8f6"></div>
+                <div
+                  class="color-preview-wrap relative h-6 w-full cursor-default overflow-hidden rounded border-[0.5px] border-line-2">
+                  <input class="absolute inset-0 h-full w-full cursor-pointer border-0 p-0 opacity-0" type="color"
+                    id="bgcol1" value="#f8f8f6" />
+                  <div class="color-preview pointer-events-none absolute inset-0" id="colprev1"
+                    style="background:#f8f8f6"></div>
                 </div>
                 <span class="color-label text-[9.5px] text-text-2">From</span>
               </div>
@@ -98,9 +142,12 @@
                 <i data-lucide="arrow-right"></i>
               </div>
               <div class="color-slot flex flex-1 flex-col items-center gap-1">
-                <div class="color-preview-wrap relative h-6 w-full cursor-default overflow-hidden rounded border-[0.5px] border-line-2">
-                  <input class="absolute inset-0 h-full w-full cursor-pointer border-0 p-0 opacity-0" type="color" id="bgcol2" value="#eceae5" />
-                  <div class="color-preview pointer-events-none absolute inset-0" id="colprev2" style="background:#eceae5"></div>
+                <div
+                  class="color-preview-wrap relative h-6 w-full cursor-default overflow-hidden rounded border-[0.5px] border-line-2">
+                  <input class="absolute inset-0 h-full w-full cursor-pointer border-0 p-0 opacity-0" type="color"
+                    id="bgcol2" value="#eceae5" />
+                  <div class="color-preview pointer-events-none absolute inset-0" id="colprev2"
+                    style="background:#eceae5"></div>
                 </div>
                 <span class="color-label text-[9.5px] text-text-2">To</span>
               </div>
@@ -109,7 +156,8 @@
 
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
             <div class="sp-row mb-1.5 flex items-center justify-between">
-              <span class="sp-label block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3" style="margin:0">Angle</span>
+              <span class="sp-label block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3"
+                style="margin:0">Angle</span>
               <span class="sp-val font-mono text-[10.5px] text-white/40 tabular-nums" id="bgangval">135°</span>
             </div>
             <input type="range" id="bgang" min="0" max="360" value="135" step="1" />
@@ -118,21 +166,31 @@
 
         <div class="tabpanel flex-1 overflow-y-auto overflow-x-hidden" id="tab-frame">
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
-            <div class="sp-label mb-2 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Aspect ratio</div>
+            <div class="sp-label mb-2 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Aspect ratio
+            </div>
             <div class="ratio-grid grid grid-cols-2 gap-[5px]">
-              <button class="ratio-btn active flex cursor-default flex-col items-center gap-[5px] rounded border-[0.5px] border-line-2 bg-panel-2 p-1.5 text-[10.5px] text-text-2 transition-all duration-[80ms] ease-[ease] hover:bg-panel-3 hover:text-text" data-r="16/9">
+              <button
+                class="ratio-btn active flex cursor-default flex-col items-center gap-[5px] rounded border-[0.5px] border-line-2 bg-panel-2 p-1.5 text-[10.5px] text-text-2 transition-all duration-[80ms] ease-[ease] hover:bg-panel-3 hover:text-text"
+                data-r="16/9">
                 <span class="ratio-icon r169 block h-3.5 w-6 rounded-[1px] border border-current opacity-40"></span>
                 <span>16:9</span>
               </button>
-              <button class="ratio-btn flex cursor-default flex-col items-center gap-[5px] rounded border-[0.5px] border-line-2 bg-panel-2 p-1.5 text-[10.5px] text-text-2 transition-all duration-[80ms] ease-[ease] hover:bg-panel-3 hover:text-text" data-r="original">
-                <span class="ratio-icon rOrig block h-3.5 w-[22px] rounded-[1px] border border-dashed border-current opacity-40"></span>
+              <button
+                class="ratio-btn flex cursor-default flex-col items-center gap-[5px] rounded border-[0.5px] border-line-2 bg-panel-2 p-1.5 text-[10.5px] text-text-2 transition-all duration-[80ms] ease-[ease] hover:bg-panel-3 hover:text-text"
+                data-r="original">
+                <span
+                  class="ratio-icon rOrig block h-3.5 w-[22px] rounded-[1px] border border-dashed border-current opacity-40"></span>
                 <span>Original</span>
               </button>
-              <button class="ratio-btn flex cursor-default flex-col items-center gap-[5px] rounded border-[0.5px] border-line-2 bg-panel-2 p-1.5 text-[10.5px] text-text-2 transition-all duration-[80ms] ease-[ease] hover:bg-panel-3 hover:text-text" data-r="4/3">
+              <button
+                class="ratio-btn flex cursor-default flex-col items-center gap-[5px] rounded border-[0.5px] border-line-2 bg-panel-2 p-1.5 text-[10.5px] text-text-2 transition-all duration-[80ms] ease-[ease] hover:bg-panel-3 hover:text-text"
+                data-r="4/3">
                 <span class="ratio-icon r43 block h-[15px] w-5 rounded-[1px] border border-current opacity-40"></span>
                 <span>4:3</span>
               </button>
-              <button class="ratio-btn flex cursor-default flex-col items-center gap-[5px] rounded border-[0.5px] border-line-2 bg-panel-2 p-1.5 text-[10.5px] text-text-2 transition-all duration-[80ms] ease-[ease] hover:bg-panel-3 hover:text-text" data-r="1/1">
+              <button
+                class="ratio-btn flex cursor-default flex-col items-center gap-[5px] rounded border-[0.5px] border-line-2 bg-panel-2 p-1.5 text-[10.5px] text-text-2 transition-all duration-[80ms] ease-[ease] hover:bg-panel-3 hover:text-text"
+                data-r="1/1">
                 <span class="ratio-icon r11 block h-3.5 w-3.5 rounded-[1px] border border-current opacity-40"></span>
                 <span>1:1</span>
               </button>
@@ -141,7 +199,8 @@
 
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
             <div class="sp-row mb-1.5 flex items-center justify-between">
-              <span class="sp-label block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3" style="margin:0">Corner radius</span>
+              <span class="sp-label block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3"
+                style="margin:0">Corner radius</span>
               <span class="sp-val font-mono text-[10.5px] text-white/40 tabular-nums" id="rval">24</span>
             </div>
             <input type="range" id="rinput" min="0" max="44" value="24" step="1" />
@@ -149,7 +208,8 @@
 
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
             <div class="sp-row mb-1.5 flex items-center justify-between">
-              <span class="sp-label block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3" style="margin:0">Padding</span>
+              <span class="sp-label block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3"
+                style="margin:0">Padding</span>
               <span class="sp-val font-mono text-[10.5px] text-white/40 tabular-nums" id="pval">76</span>
             </div>
             <input type="range" id="pinput" min="0" max="140" value="76" step="4" />
@@ -157,7 +217,8 @@
 
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
             <div class="sp-row mb-1.5 flex items-center justify-between">
-              <span class="sp-label block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3" style="margin:0">Inset scale</span>
+              <span class="sp-label block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3"
+                style="margin:0">Inset scale</span>
               <span class="sp-val font-mono text-[10.5px] text-white/40 tabular-nums" id="ival">94%</span>
             </div>
             <input type="range" id="iinput" min="60" max="100" value="94" step="1" />
@@ -176,45 +237,100 @@
             </div>
             <input type="range" id="soinput" min="0" max="80" value="26" step="1" />
           </div>
+
+          <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
+            <div class="sp-label mb-2 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Finish</div>
+            <div class="sp-row mb-1.5 flex items-center justify-between">
+              <span class="sp-sublabel text-[11px] text-text-2">Border</span>
+              <span class="sp-val font-mono text-[10.5px] text-white/40 tabular-nums" id="bval">6%</span>
+            </div>
+            <input type="range" id="binput" min="0" max="24" value="6" step="1" />
+            <div class="sp-row mb-1.5 flex items-center justify-between" style="margin-top:10px">
+              <span class="sp-sublabel text-[11px] text-text-2">Vignette</span>
+              <span class="sp-val font-mono text-[10.5px] text-white/40 tabular-nums" id="vval">0%</span>
+            </div>
+            <input type="range" id="vinput" min="0" max="100" value="0" step="1" />
+            <div class="sp-row mb-1.5 flex items-center justify-between" style="margin-top:10px">
+              <span class="sp-sublabel text-[11px] text-text-2">Grain</span>
+              <span class="sp-val font-mono text-[10.5px] text-white/40 tabular-nums" id="gval">0%</span>
+            </div>
+            <input type="range" id="ginput" min="0" max="100" value="0" step="1" />
+          </div>
         </div>
 
         <div class="tabpanel flex-1 overflow-y-auto overflow-x-hidden" id="tab-zoom">
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
             <div class="sp-row mb-1.5 flex items-center justify-between">
-              <span class="sp-label block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3" style="margin:0">Zoom level</span>
+              <span class="sp-label block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3"
+                style="margin:0">Zoom level</span>
               <span class="sp-val font-mono text-[10.5px] text-white/40 tabular-nums" id="zval">2.6×</span>
             </div>
             <input type="range" id="zinput" min="1.2" max="4" value="2.6" step=".1" />
-            <div class="sp-hint mt-1.5 text-[10.5px] leading-[1.4] text-text-3">Click the canvas or timeline to place zooms. Click a zoom pill to delete it.</div>
+            <div class="sp-hint mt-1.5 text-[10.5px] leading-[1.4] text-text-3">Click the canvas or timeline to place
+              zooms. Click a zoom pill to delete it.</div>
           </div>
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
-            <div class="sp-label mb-2 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Zoom count</div>
-            <div class="zoom-stat flex h-6 items-center rounded border-[0.5px] border-line-2 bg-[#0a0a0b] px-2 font-mono text-[10.5px] text-white/40"><span id="zcount">0 zooms</span></div>
+            <div class="sp-row mb-1.5 flex items-center justify-between">
+              <span class="sp-label block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3"
+                style="margin:0">Duration</span>
+              <span class="sp-val font-mono text-[10.5px] text-white/40 tabular-nums" id="dval">2.2s</span>
+            </div>
+            <input type="range" id="dinput" min=".4" max="5" value="2.2" step=".1" />
+            <div class="sp-row mb-1.5 flex items-center justify-between" style="margin-top:10px">
+              <span class="sp-label block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3"
+                style="margin:0">Motion blur</span>
+              <span class="sp-val font-mono text-[10.5px] text-white/40 tabular-nums" id="mval">55%</span>
+            </div>
+            <input type="range" id="minput" min="0" max="100" value="55" step="1" />
+          </div>
+          <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
+            <div class="sp-label mb-2 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Zoom count
+            </div>
+            <div
+              class="zoom-stat flex h-6 items-center rounded border-[0.5px] border-line-2 bg-[#0a0a0b] px-2 font-mono text-[10.5px] text-white/40">
+              <span id="zcount">0 zooms</span></div>
+            <button id="clearzooms"
+              class="mt-[5px] flex h-6 w-full cursor-default items-center rounded border-[0.5px] border-line-2 bg-panel-2 px-2 text-[10.5px] text-text-2 transition-all duration-[80ms] hover:bg-panel-3 hover:text-text">Clear
+              zooms</button>
           </div>
         </div>
 
         <div class="tabpanel flex-1 overflow-y-auto overflow-x-hidden" id="tab-export">
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
-            <div class="sp-label mb-2 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Download</div>
+            <div class="sp-label mb-2 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Download
+            </div>
             <div class="export-btns flex flex-col gap-[5px]">
-              <button id="dlwebm" class="export-btn flex h-6 w-full cursor-default items-center gap-1.5 rounded border-[0.5px] border-black/40 bg-[linear-gradient(180deg,#2c2c2e_0%,#222224_100%)] px-2 text-[11.5px] text-white/85 transition-all duration-[80ms] hover:enabled:bg-[linear-gradient(180deg,#3a3a3c_0%,#2c2c2e_100%)] active:enabled:bg-[#1c1c1e] disabled:opacity-20 [&_span:nth-child(2)]:flex-1 [&_span:nth-child(2)]:text-left">
+              <button id="dlwebm"
+                class="export-btn flex h-6 w-full cursor-default items-center gap-1.5 rounded border-[0.5px] border-black/40 bg-[linear-gradient(180deg,#2c2c2e_0%,#222224_100%)] px-2 text-[11.5px] text-white/85 transition-all duration-[80ms] hover:enabled:bg-[linear-gradient(180deg,#3a3a3c_0%,#2c2c2e_100%)] active:enabled:bg-[#1c1c1e] disabled:opacity-20 [&_span:nth-child(2)]:flex-1 [&_span:nth-child(2)]:text-left">
                 <i data-lucide="download"></i>
                 <span>WebM</span>
-                <span class="export-badge rounded-[2px] bg-black/20 px-[3px] py-px font-mono text-[8.5px] text-white/25">Fast</span>
+                <span
+                  class="export-badge rounded-[2px] bg-black/20 px-[3px] py-px font-mono text-[8.5px] text-white/25">Fast</span>
               </button>
-              <button id="dlmp4" class="export-btn export-primary flex h-6 w-full cursor-default items-center gap-1.5 rounded border-[0.5px] border-black/30 bg-white px-2 text-[11.5px] font-medium text-[#0a0d10] transition-all duration-[80ms] hover:enabled:bg-[#e5e5ea] active:enabled:bg-[#aeaeb2] disabled:opacity-20 [&_span:nth-child(2)]:flex-1 [&_span:nth-child(2)]:text-left">
+              <button id="dlmp4"
+                class="export-btn export-primary flex h-6 w-full cursor-default items-center gap-1.5 rounded border-[0.5px] border-black/30 bg-white px-2 text-[11.5px] font-medium text-[#0a0d10] transition-all duration-[80ms] hover:enabled:bg-[#e5e5ea] active:enabled:bg-[#aeaeb2] disabled:opacity-20 [&_span:nth-child(2)]:flex-1 [&_span:nth-child(2)]:text-left">
                 <i data-lucide="download"></i>
                 <span>MP4</span>
-                <span class="export-badge rounded-[2px] bg-black/5 px-[3px] py-px font-mono text-[8.5px] text-black/40">Compatible</span>
+                <span
+                  class="export-badge rounded-[2px] bg-black/5 px-[3px] py-px font-mono text-[8.5px] text-black/40">Compatible</span>
+              </button>
+              <button id="dlpng"
+                class="export-btn flex h-6 w-full cursor-default items-center gap-1.5 rounded border-[0.5px] border-black/40 bg-[linear-gradient(180deg,#2c2c2e_0%,#222224_100%)] px-2 text-[11.5px] text-white/85 transition-all duration-[80ms] hover:enabled:bg-[linear-gradient(180deg,#3a3a3c_0%,#2c2c2e_100%)] active:enabled:bg-[#1c1c1e] disabled:opacity-20 [&_span:nth-child(2)]:flex-1 [&_span:nth-child(2)]:text-left">
+                <i data-lucide="download"></i>
+                <span>PNG frame</span>
+                <span
+                  class="export-badge rounded-[2px] bg-black/20 px-[3px] py-px font-mono text-[8.5px] text-white/25">Still</span>
               </button>
             </div>
             <div id="prog" class="gone mt-2 h-0.5 overflow-hidden rounded-full bg-[#0a0a0b]">
               <div id="progbar" class="h-full w-0 bg-white/70"></div>
             </div>
-            <span id="progtxt" class="sp-hint gone text-[10.5px] leading-[1.4] text-text-3" style="margin-top:8px;display:block">preparing...</span>
+            <span id="progtxt" class="sp-hint gone text-[10.5px] leading-[1.4] text-text-3"
+              style="margin-top:8px;display:block">preparing...</span>
           </div>
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
-            <button id="again" class="new-rec-btn flex h-6 w-full cursor-default items-center gap-1.5 rounded border-[0.5px] border-line-2 bg-panel-2 px-2 text-[10.5px] text-text-2 transition-all duration-[80ms] hover:bg-panel-3 hover:text-text">
+            <button id="again"
+              class="new-rec-btn flex h-6 w-full cursor-default items-center gap-1.5 rounded border-[0.5px] border-line-2 bg-panel-2 px-2 text-[10.5px] text-text-2 transition-all duration-[80ms] hover:bg-panel-3 hover:text-text">
               <i data-lucide="rotate-ccw"></i>
               New recording
             </button>
@@ -226,16 +342,34 @@
 
     <div id="tline" class="gone h-[92px] shrink-0 border-t border-line bg-panel">
       <div id="tbar" class="flex h-8 items-center gap-1.5 border-b border-line px-3">
-        <button id="playbtn" class="h-5 min-w-11 cursor-default rounded-[3px] border-[0.5px] border-black/40 bg-[linear-gradient(180deg,#2c2c2e_0%,#222224_100%)] px-2 text-[10.5px] text-white/85 hover:bg-[linear-gradient(180deg,#3a3a3c_0%,#2c2c2e_100%)] active:bg-[#1c1c1e]">Play</button>
+        <button id="playbtn"
+          class="h-5 min-w-11 cursor-default rounded-[3px] border-[0.5px] border-black/40 bg-[linear-gradient(180deg,#2c2c2e_0%,#222224_100%)] px-2 text-[10.5px] text-white/85 hover:bg-[linear-gradient(180deg,#3a3a3c_0%,#2c2c2e_100%)] active:bg-[#1c1c1e]">Play</button>
         <span id="tcode" class="font-mono text-[10.5px] text-white/40 tabular-nums">0:00 / 0:00</span>
-        <span id="zcount-pill" class="grid h-4 place-items-center rounded-[3px] border-[0.5px] border-line-2 bg-[#0a0a0b] px-[5px] font-mono text-[9.5px] text-text-3">0 zooms</span>
-        <button id="addzoom" class="ml-auto h-5 cursor-default rounded-[3px] border-[0.5px] border-line-3 bg-panel-3 px-2 text-[10.5px] text-text hover:bg-[#2c2c2f]">+ Add zoom</button>
+        <span id="zcount-pill"
+          class="grid h-4 place-items-center rounded-[3px] border-[0.5px] border-line-2 bg-[#0a0a0b] px-[5px] font-mono text-[9.5px] text-text-3">0
+          zooms</span>
+        <div id="speedbar" class="flex overflow-hidden rounded-[3px] border-[0.5px] border-line-2">
+          <button class="speed-btn h-5 cursor-default bg-[#0a0a0b] px-1.5 text-[9.5px] text-text-3"
+            data-speed=".5">.5×</button>
+          <button class="speed-btn active h-5 cursor-default bg-panel-3 px-1.5 text-[9.5px] text-text"
+            data-speed="1">1×</button>
+          <button class="speed-btn h-5 cursor-default bg-[#0a0a0b] px-1.5 text-[9.5px] text-text-3"
+            data-speed="1.5">1.5×</button>
+          <button class="speed-btn h-5 cursor-default bg-[#0a0a0b] px-1.5 text-[9.5px] text-text-3"
+            data-speed="2">2×</button>
+        </div>
+        <button id="addzoom"
+          class="ml-auto h-5 cursor-default rounded-[3px] border-[0.5px] border-line-3 bg-panel-3 px-2 text-[10.5px] text-text hover:bg-[#2c2c2f]">+
+          Add zoom</button>
       </div>
-      <div id="track" class="relative m-3 my-2 h-10 cursor-default overflow-hidden rounded border border-line bg-[#09090a]">
+      <div id="track"
+        class="relative m-3 my-2 h-10 cursor-default overflow-hidden rounded border border-line bg-[#09090a]">
         <div id="wave" class="pointer-events-none absolute inset-0 flex w-full items-center gap-[1.5px] px-2"></div>
         <div id="tfill" class="pointer-events-none absolute top-0 bottom-0 bg-white/[0.01]"></div>
-        <div id="triml" class="handle absolute top-0 bottom-0 z-[3] w-px -translate-x-1/2 cursor-ew-resize bg-white"></div>
-        <div id="trimr" class="handle absolute top-0 bottom-0 z-[3] w-px -translate-x-1/2 cursor-ew-resize bg-white"></div>
+        <div id="triml" class="handle absolute top-0 bottom-0 z-[3] w-px -translate-x-1/2 cursor-ew-resize bg-white">
+        </div>
+        <div id="trimr" class="handle absolute top-0 bottom-0 z-[3] w-px -translate-x-1/2 cursor-ew-resize bg-white">
+        </div>
         <div id="phead" class="pointer-events-none absolute top-0 bottom-0 z-[4] w-px bg-red"></div>
         <div id="zdots" class="pointer-events-none absolute inset-0"></div>
       </div>
