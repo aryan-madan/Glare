@@ -35,14 +35,19 @@
       <div id="stage-empty" class="pointer-events-none absolute inset-0 grid place-items-center px-6">
         <div class="pointer-events-auto flex w-full max-w-[440px] flex-col items-center text-center">
           <h1 class="mt-3 text-[64px] font-semibold leading-none tracking-[0px] text-white">Glare</h1>
+          <p class="mt-4 max-w-[260px] text-[12px] leading-5 text-white/35">Polish a fresh screen recording or bring in
+            a clip from your device.</p>
           <div class="mt-7 flex w-full max-w-[330px] flex-col gap-2">
             <button id="startrec" data-start-recording
               class="btn-3d btn-3d-primary h-10 cursor-default rounded px-4 text-[12px] font-semibold">Start new
               recording</button>
-            <button data-start-recording
-              class="btn-3d btn-3d-dark h-9 cursor-default rounded px-4 text-[11.5px] font-medium">Record
-              screen</button>
+            <button id="uploadbtn"
+              class="btn-3d btn-3d-dark h-9 cursor-default rounded px-4 text-[11.5px] font-medium">Upload
+              video</button>
           </div>
+          <div id="dropcopy" class="mt-4 font-mono text-[10px] uppercase tracking-[0.5px] text-white/20">Drop MP4, MOV,
+            or WebM</div>
+          <input id="fileinput" class="hidden" type="file" accept="video/*" />
         </div>
       </div>
       <div id="hint"
@@ -82,7 +87,6 @@
           </button>
         </div>
 
-        <!-- BG TAB -->
         <div class="tabpanel active flex-1 overflow-y-auto overflow-x-hidden" id="tab-background">
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
             <div class="sp-label mb-2 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Presets</div>
@@ -176,7 +180,6 @@
           </div>
         </div>
 
-        <!-- FRAME TAB -->
         <div class="tabpanel flex-1 overflow-y-auto overflow-x-hidden" id="tab-frame">
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
             <div class="sp-label mb-2 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Aspect ratio
@@ -274,7 +277,6 @@
           </div>
         </div>
 
-        <!-- ZOOM TAB -->
         <div class="tabpanel flex-1 overflow-y-auto overflow-x-hidden" id="tab-zoom">
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
             <div class="mb-2 flex items-center justify-between">
@@ -311,10 +313,8 @@
           </div>
           <span id="zcount" class="gone">0 zooms</span>
           <button id="clearzooms" class="gone" type="button">Clear all zooms</button>
-
         </div>
 
-        <!-- EXPORT TAB -->
         <div class="tabpanel flex-1 overflow-y-auto overflow-x-hidden" id="tab-export">
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
             <div class="sp-label mb-2 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Settings
@@ -339,6 +339,7 @@
             <div class="sp-label mb-2 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Download
             </div>
             <div class="export-btns flex flex-col gap-[5px]">
+              
               <button id="dlwebm"
                 class="btn-3d btn-3d-dark export-btn flex h-6 w-full cursor-default items-center gap-1.5 rounded px-2 text-[11.5px] disabled:opacity-20 [&_span:nth-child(2)]:flex-1 [&_span:nth-child(2)]:text-left">
                 <i data-lucide="download"></i>
@@ -352,6 +353,13 @@
                 <span>MP4</span>
                 <span
                   class="export-badge rounded-[2px] bg-black/5 px-[3px] py-px font-mono text-[8.5px] text-black/40">Compatible</span>
+              </button>
+              <button id="dlgif"
+                class="btn-3d btn-3d-dark export-btn flex h-6 w-full cursor-default items-center gap-1.5 rounded px-2 text-[11.5px] disabled:opacity-20 [&_span:nth-child(2)]:flex-1 [&_span:nth-child(2)]:text-left">
+                <i data-lucide="download"></i>
+                <span>GIF</span>
+                <span
+                  class="export-badge rounded-[2px] bg-black/20 px-[3px] py-px font-mono text-[8.5px] text-white/25">≤30s</span>
               </button>
               <button id="dlpng"
                 class="btn-3d btn-3d-dark export-btn flex h-6 w-full cursor-default items-center gap-1.5 rounded px-2 text-[11.5px] disabled:opacity-20 [&_span:nth-child(2)]:flex-1 [&_span:nth-child(2)]:text-left">

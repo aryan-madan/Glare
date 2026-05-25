@@ -57,6 +57,21 @@
     @apply opacity-100;
   }
 
+  #app.idle #stage {
+    background:
+      linear-gradient(155deg, rgba(255, 255, 255, 0.035), transparent 34%),
+      linear-gradient(22deg, rgba(124, 60, 255, 0.08), transparent 38%),
+      #070708;
+  }
+
+  #stage-empty.dragging {
+    background: radial-gradient(circle at 50% 52%, rgba(255, 255, 255, 0.08), transparent 34%);
+  }
+
+  #stage-empty.dragging #dropcopy {
+    @apply text-white/55;
+  }
+
   #stopbtn:not(:disabled) {
     @apply text-red shadow-none;
     background-color: rgba(255, 69, 58, 0.05);

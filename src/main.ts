@@ -2,7 +2,7 @@ import './main.css'
 import { startCapture, stopCapture } from './capture'
 import { initEditor, setBgCol, setBgAng, setRad, setPad, setShad, setShadop, setInset, setStrokeop, setVignette, setGrain, setMotion, setRatio, setZooms, draw } from './editor'
 import type { Zoom } from './editor'
-import { dlWebm, toMp4 } from './export'
+import { dlWebm, toMp4, toGif } from './export'
 import type { Mp4Options } from './export'
 
 import { createIcons, Image, Frame, ZoomIn, Download, ArrowRight, RotateCcw } from 'lucide'
@@ -17,6 +17,7 @@ const again = document.getElementById('again') as HTMLButtonElement
 const dlwebm = document.getElementById('dlwebm') as HTMLButtonElement
 const dlmp4 = document.getElementById('dlmp4') as HTMLButtonElement
 const dlpng = document.getElementById('dlpng') as HTMLButtonElement
+const dlgif = document.getElementById('dlgif') as HTMLButtonElement
 const playbtn = document.getElementById('playbtn') as HTMLButtonElement
 const addzoom = document.getElementById('addzoom') as HTMLButtonElement
 const clearzooms = document.getElementById('clearzooms') as HTMLButtonElement
@@ -27,6 +28,9 @@ const zcountPill = document.getElementById('zcount-pill') as HTMLSpanElement
 const zcountTab = document.getElementById('zcount') as HTMLSpanElement
 const stage = document.getElementById('stage') as HTMLDivElement
 const stageEmpty = document.getElementById('stage-empty') as HTMLDivElement
+const uploadbtn = document.getElementById('uploadbtn') as HTMLButtonElement
+const fileinput = document.getElementById('fileinput') as HTMLInputElement
+const dropcopy = document.getElementById('dropcopy') as HTMLDivElement
 const editor = document.getElementById('editor') as HTMLDivElement
 const tline = document.getElementById('tline') as HTMLDivElement
 const hint = document.getElementById('hint') as HTMLDivElement
@@ -123,6 +127,36 @@ document.querySelectorAll<HTMLButtonElement>('[data-start-recording]').forEach(b
   btn.onclick = () => recbtn.click()
 })
 
+uploadbtn.onclick = () => fileinput.click()
+
+fileinput.onchange = async () => {
+  const file = fileinput.files?.[0]
+  fileinput.value = ''
+  if (!file) return
+  await loadDroppedOrPickedVideo(file)
+}
+
+stageEmpty.addEventListener('dragover', e => {
+  e.preventDefault()
+  stageEmpty.classList.add('dragging')
+  dropcopy.textContent = 'Release to open video'
+})
+
+stageEmpty.addEventListener('dragleave', e => {
+  if (e.currentTarget !== stageEmpty || stageEmpty.contains(e.relatedTarget as Node | null)) return
+  stageEmpty.classList.remove('dragging')
+  dropcopy.textContent = 'Drop MP4, MOV, or WebM'
+})
+
+stageEmpty.addEventListener('drop', async e => {
+  e.preventDefault()
+  stageEmpty.classList.remove('dragging')
+  dropcopy.textContent = 'Drop MP4, MOV, or WebM'
+  const file = Array.from(e.dataTransfer?.files || []).find(file => file.type.startsWith('video/'))
+  if (!file) return
+  await loadDroppedOrPickedVideo(file)
+})
+
 initEditor(output, preview)
 selectZoom(null)
 
@@ -182,16 +216,35 @@ preview.addEventListener('click', e => {
 })
 
 async function openEditor(): Promise<void> {
+  const blob = new Blob(chunks, { type: 'video/webm' })
+  recordedDuration = recordedDuration || (recstart ? (Date.now() - recstart) / 1000 : 0)
+  await openVideoBlob(blob, recordedDuration)
+}
+
+async function openVideoBlob(blob: Blob, fallbackDuration = 0): Promise<void> {
   app.classList.remove('idle')
   stage.classList.add('gone')
   editor.classList.remove('gone')
   tline.classList.remove('gone')
   showLoadOverlay()
-  const blob = new Blob(chunks, { type: 'video/webm' })
-  recordedDuration = recordedDuration || (recstart ? (Date.now() - recstart) / 1000 : 0)
   setLoadText('Reading metadata...')
-  const duration = await resolveBlobDuration(blob, recordedDuration)
+  const duration = await resolveBlobDuration(blob, fallbackDuration)
   finishOpenEditor(blob, duration)
+}
+
+async function loadDroppedOrPickedVideo(file: File): Promise<void> {
+  if (!file.type.startsWith('video/')) return
+  if (tick) { clearInterval(tick); tick = null }
+  if (rec?.state === 'recording') rec.stop()
+  stopCapture()
+  chunks = [file]
+  zooms = []
+  loadedDuration = 0
+  recordedDuration = 0
+  recstart = 0
+  selectedZoomIdx = null
+  selectZoom(null)
+  await openVideoBlob(file)
 }
 
 function finishOpenEditor(blob: Blob, duration: number): void {
@@ -226,6 +279,7 @@ function finishOpenEditor(blob: Blob, duration: number): void {
     setZooms(zooms)
     trimL = 0; trimR = 1
     syncHandles(); syncTimecode(); draw(); syncZdots()
+    syncGifBtn()
     hideLoadOverlay()
   }
 
@@ -233,6 +287,16 @@ function finishOpenEditor(blob: Blob, duration: number): void {
   vid.ondurationchange = () => tryInit()
   vid.onloadeddata = () => tryInit()
   setTimeout(() => tryInit(true), 5000)
+}
+
+function syncGifBtn(): void {
+  const dur = trimmedDuration()
+  dlgif.disabled = dur > 30
+  dlgif.title = dur > 30 ? 'GIF export only available for recordings under 30s' : ''
+}
+
+function trimmedDuration(): number {
+  return safeDuration() * (trimR - trimL)
 }
 
 function showLoadOverlay(): void {
@@ -343,6 +407,7 @@ function syncHandles(): void {
   trimr.style.left = (trimR * 100) + '%'
   tfill.style.left = (trimL * 100) + '%'
   tfill.style.right = ((1 - trimR) * 100) + '%'
+  syncGifBtn()
 }
 
 function selectZoom(idx: number | null): void {
@@ -608,6 +673,19 @@ dlmp4.onclick = async () => {
   } finally {
     prog.classList.add('gone'); progtxt.classList.add('gone')
     progbar.style.width = '0%'; dlmp4.disabled = false
+  }
+}
+
+dlgif.onclick = async () => {
+  dlgif.disabled = true; prog.classList.remove('gone'); progtxt.classList.remove('gone')
+  try {
+    progtxt.textContent = 'rendering edit...'
+    const edited = await renderEditedBlob()
+    progtxt.textContent = 'encoding gif...'
+    await toGif(edited, p => { progbar.style.width = p + '%' }, msg => { progtxt.textContent = msg.slice(0, 40) })
+  } finally {
+    prog.classList.add('gone'); progtxt.classList.add('gone')
+    progbar.style.width = '0%'; dlgif.disabled = trimmedDuration() > 30
   }
 }
 

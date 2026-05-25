@@ -1,34 +1,68 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg'
-import { fetchFile, toBlobURL } from '@ffmpeg/util'
+import { fetchFile } from '@ffmpeg/util'
 
-let ff: FFmpeg | null = null
+let ffmpeg: FFmpeg | null = null
 
 export interface Mp4Options {
   crf: number
-  preset: 'ultrafast' | 'superfast' | 'veryfast' | 'faster' | 'fast' | 'medium' | 'slow'
+  preset:
+  | 'ultrafast'
+  | 'superfast'
+  | 'veryfast'
+  | 'faster'
+  | 'fast'
+  | 'medium'
+  | 'slow'
 }
 
-async function getFF(onLog: (s: string) => void): Promise<FFmpeg> {
-  if (ff) return ff
-  ff = new FFmpeg()
-  ff.on('log', ({ message }) => onLog(message))
-  const base = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd'
-  await ff.load({
-    coreURL: await toBlobURL(`${base}/ffmpeg-core.js`, 'text/javascript'),
-    wasmURL: await toBlobURL(`${base}/ffmpeg-core.wasm`, 'application/wasm'),
+async function getFF(
+  onLog: (s: string) => void
+): Promise<FFmpeg> {
+  if (ffmpeg) return ffmpeg
+
+  const ff = new FFmpeg()
+
+  ff.on('log', ({ message }) => {
+    onLog(message)
   })
+
+  const base = `${window.location.origin}/ffmpeg`
+
+  await ff.load({
+    coreURL: `${base}/ffmpeg-core.js`,
+    wasmURL: `${base}/ffmpeg-core.wasm`,
+  })
+
+  ffmpeg = ff
+
   return ff
 }
 
 function asBlob(input: Blob | Blob[]): Blob {
-  return Array.isArray(input) ? new Blob(input, { type: 'video/webm' }) : input
+  return Array.isArray(input)
+    ? new Blob(input, { type: 'video/webm' })
+    : input
+}
+
+function download(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob)
+
+  const a = document.createElement('a')
+
+  a.href = url
+  a.download = filename
+
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+
+  setTimeout(() => {
+    URL.revokeObjectURL(url)
+  }, 3000)
 }
 
 export function dlWebm(input: Blob | Blob[]): void {
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(asBlob(input))
-  a.download = 'glare.webm'
-  a.click()
+  download(asBlob(input), 'glare.webm')
 }
 
 export async function toMp4(
@@ -37,22 +71,87 @@ export async function toMp4(
   onProg: (n: number) => void,
   onLog: (s: string) => void
 ): Promise<void> {
-  const inst = await getFF(onLog)
-  inst.on('progress', ({ progress }) => onProg(Math.round(Math.min(progress * 100, 100))))
-  await inst.writeFile('in.webm', await fetchFile(asBlob(input)))
-  await inst.exec([
-    '-i', 'in.webm',
-    '-c:v', 'libx264',
-    '-preset', options.preset,
-    '-crf', String(options.crf),
-    '-pix_fmt', 'yuv420p',
-    '-movflags', '+faststart',
-    'out.mp4'
+  const ff = await getFF(onLog)
+
+  ff.on('progress', ({ progress }) => {
+    onProg(Math.round(progress * 100))
+  })
+
+  await ff.writeFile(
+    'input.webm',
+    await fetchFile(asBlob(input))
+  )
+
+  await ff.exec([
+    '-y',
+    '-i',
+    'input.webm',
+    '-c:v',
+    'mpeg4',
+    '-q:v',
+    String(options.crf),
+    '-pix_fmt',
+    'yuv420p',
+    '-movflags',
+    '+faststart',
+    'output.mp4',
   ])
-  const data = await inst.readFile('out.mp4') as Uint8Array
-  const body = new Uint8Array(data)
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(new Blob([body], { type: 'video/mp4' }))
-  a.download = 'glare.mp4'
-  a.click()
+
+  const data = await ff.readFile('output.mp4')
+
+  if (!(data instanceof Uint8Array) || data.length === 0) {
+    throw new Error('Failed to generate MP4')
+  }
+
+  const out = new Uint8Array(data)
+
+  download(
+    new Blob([out], {
+      type: 'video/mp4',
+    }),
+    'glare.mp4'
+  )
+}
+
+export async function toGif(
+  input: Blob | Blob[],
+  onProg: (n: number) => void,
+  onLog: (s: string) => void
+): Promise<void> {
+  const ff = await getFF(onLog)
+
+  ff.on('progress', ({ progress }) => {
+    onProg(Math.round(progress * 100))
+  })
+
+  await ff.writeFile(
+    'input.webm',
+    await fetchFile(asBlob(input))
+  )
+
+  await ff.exec([
+    '-y',
+    '-i',
+    'input.webm',
+    '-vf',
+    'fps=15,scale=960:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse',
+    '-loop',
+    '0',
+    'output.gif',
+  ])
+
+  const data = await ff.readFile('output.gif')
+
+  if (!(data instanceof Uint8Array) || data.length === 0) {
+    throw new Error('Failed to generate GIF')
+  }
+
+  const out = new Uint8Array(data)
+
+  download(
+    new Blob([out], {
+      type: 'image/gif',
+    }),
+    'glare.gif'
+  )
 }
