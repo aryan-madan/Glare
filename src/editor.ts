@@ -1,4 +1,10 @@
-export interface Zoom { t: number; nx: number; ny: number; dur: number }
+export interface Zoom {
+  t: number
+  nx: number
+  ny: number
+  dur: number
+  zoomlvl?: number
+}
 
 interface Camera { scale: number; nx: number; ny: number }
 
@@ -201,6 +207,8 @@ function getCamera(time: number): Camera {
   const active = [...zooms].reverse().find(z => time >= z.t - .06 && time <= z.t + z.dur)
   if (!active) return { scale: 1, nx: .5, ny: .5 }
 
+  const effectiveZoom = active.zoomlvl ?? zoomlvl
+
   const total = active.dur
   const zoomIn = Math.min(0.5, total * 0.22)
   const zoomOut = Math.min(0.6, total * 0.28)
@@ -219,7 +227,7 @@ function getCamera(time: number): Camera {
   }
 
   return {
-    scale: lerp(1, zoomlvl, t),
+    scale: lerp(1, effectiveZoom, t),
     nx: lerp(.5, active.nx, t),
     ny: lerp(.5, active.ny, t)
   }

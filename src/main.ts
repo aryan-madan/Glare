@@ -1,12 +1,14 @@
 import './main.css'
 import { startCapture, stopCapture } from './capture'
-import { initEditor, setBgCol, setBgAng, setRad, setPad, setShad, setShadop, setZoomlvl, setInset, setStrokeop, setVignette, setGrain, setMotion, setRatio, setZooms, draw } from './editor'
+import { initEditor, setBgCol, setBgAng, setRad, setPad, setShad, setShadop, setInset, setStrokeop, setVignette, setGrain, setMotion, setRatio, setZooms, draw } from './editor'
 import type { Zoom } from './editor'
 import { dlWebm, toMp4 } from './export'
+import type { Mp4Options } from './export'
 
-import { createIcons, Image, Frame, ZoomIn, Download, ArrowRight, RotateCcw } from 'lucide';
-createIcons({ icons: { Image, Frame, ZoomIn, Download, ArrowRight, RotateCcw } });
+import { createIcons, Image, Frame, ZoomIn, Download, ArrowRight, RotateCcw } from 'lucide'
+createIcons({ icons: { Image, Frame, ZoomIn, Download, ArrowRight, RotateCcw } })
 
+const app = document.getElementById('app') as HTMLDivElement
 const preview = document.getElementById('preview') as HTMLVideoElement
 const output = document.getElementById('output') as HTMLCanvasElement
 const recbtn = document.getElementById('recbtn') as HTMLButtonElement
@@ -22,8 +24,9 @@ const dot = document.getElementById('dot') as HTMLDivElement
 const timerEl = document.getElementById('timer') as HTMLSpanElement
 const tcode = document.getElementById('tcode') as HTMLSpanElement
 const zcountPill = document.getElementById('zcount-pill') as HTMLSpanElement
-const zcountTab = document.querySelector('#tab-zoom .zoom-stat span') as HTMLSpanElement
+const zcountTab = document.getElementById('zcount') as HTMLSpanElement
 const stage = document.getElementById('stage') as HTMLDivElement
+const stageEmpty = document.getElementById('stage-empty') as HTMLDivElement
 const editor = document.getElementById('editor') as HTMLDivElement
 const tline = document.getElementById('tline') as HTMLDivElement
 const hint = document.getElementById('hint') as HTMLDivElement
@@ -37,6 +40,7 @@ const wave = document.getElementById('wave') as HTMLDivElement
 const prog = document.getElementById('prog') as HTMLDivElement
 const progbar = document.getElementById('progbar') as HTMLDivElement
 const progtxt = document.getElementById('progtxt') as HTMLSpanElement
+
 const bgcol1 = document.getElementById('bgcol1') as HTMLInputElement
 const bgcol2 = document.getElementById('bgcol2') as HTMLInputElement
 const bgang = document.getElementById('bgang') as HTMLInputElement
@@ -45,27 +49,46 @@ const rinput = document.getElementById('rinput') as HTMLInputElement
 const pinput = document.getElementById('pinput') as HTMLInputElement
 const sinput = document.getElementById('sinput') as HTMLInputElement
 const soinput = document.getElementById('soinput') as HTMLInputElement
-const zinput = document.getElementById('zinput') as HTMLInputElement
 const iinput = document.getElementById('iinput') as HTMLInputElement
 const binput = document.getElementById('binput') as HTMLInputElement
 const vinput = document.getElementById('vinput') as HTMLInputElement
 const ginput = document.getElementById('ginput') as HTMLInputElement
-const dinput = document.getElementById('dinput') as HTMLInputElement
 const minput = document.getElementById('minput') as HTMLInputElement
 const rval = document.getElementById('rval') as HTMLSpanElement
 const pval = document.getElementById('pval') as HTMLSpanElement
 const sval = document.getElementById('sval') as HTMLSpanElement
 const soval = document.getElementById('soval') as HTMLSpanElement
-const zval = document.getElementById('zval') as HTMLSpanElement
 const ival = document.getElementById('ival') as HTMLSpanElement
 const bval = document.getElementById('bval') as HTMLSpanElement
 const vval = document.getElementById('vval') as HTMLSpanElement
 const gval = document.getElementById('gval') as HTMLSpanElement
-const dval = document.getElementById('dval') as HTMLSpanElement
 const mval = document.getElementById('mval') as HTMLSpanElement
 const colprev1 = document.getElementById('colprev1') as HTMLDivElement
 const colprev2 = document.getElementById('colprev2') as HTMLDivElement
 
+const ziEmpty = document.getElementById('zi-empty') as HTMLDivElement
+const ziPanel = document.getElementById('zi-panel') as HTMLDivElement
+const ziTitle = document.getElementById('zi-title') as HTMLSpanElement
+const ziLvl = document.getElementById('zi-lvl') as HTMLInputElement
+const ziLvlVal = document.getElementById('zi-lvlval') as HTMLSpanElement
+const ziDur = document.getElementById('zi-dur') as HTMLInputElement
+const ziDurVal = document.getElementById('zi-durval') as HTMLSpanElement
+const ziDel = document.getElementById('zi-del') as HTMLButtonElement
+const ziAddEmpty = document.getElementById('zi-add-empty') as HTMLButtonElement
+const zcountEmpty = document.getElementById('zcount-empty') as HTMLSpanElement
+
+const fpsinput = document.getElementById('fpsinput') as HTMLInputElement
+const fpsval = document.getElementById('fpsval') as HTMLSpanElement
+const qinput = document.getElementById('qinput') as HTMLInputElement
+const qval = document.getElementById('qval') as HTMLSpanElement
+const scaleinput = document.getElementById('scaleinput') as HTMLInputElement
+const scaleval = document.getElementById('scaleval') as HTMLSpanElement
+const tabBtns = document.querySelectorAll<HTMLButtonElement>('.tab')
+const tabPanels = document.querySelectorAll<HTMLElement>('.tabpanel')
+const editmain = document.getElementById('editmain') as HTMLDivElement
+
+let loadOverlay: HTMLDivElement | null = null
+let loadLabel: HTMLSpanElement | null = null
 let chunks: Blob[] = []
 let rec: MediaRecorder | null = null
 let secs = 0
@@ -73,39 +96,53 @@ let tick: ReturnType<typeof setInterval> | null = null
 let zooms: Zoom[] = []
 let recstart = 0
 let vid: HTMLVideoElement | null = null
+let vidUrl: string | null = null
+let loadedDuration = 0
+let recordedDuration = 0
 let trimL = 0
 let trimR = 1
 let drag: 'l' | 'r' | null = null
 let raf = 0
 let lastZoomTarget = { nx: .5, ny: .5 }
-let zoomDrag: { idx: number; startX: number; origDur: number } | null = null
+let zoomDrag: { idx: number; startX: number; origT: number; origDur: number; edge: 'l' | 'r' } | null = null
 let nativeRatio = 16 / 9
-let zoomDur = 2.2
+let defaultDur = 2.2
 let playrate = 1
+let selectedZoomIdx: number | null = null
+let exportFps = 60
+let exportQuality = 1
+let exportScale = 1
 
-document.querySelectorAll<HTMLButtonElement>('.tab').forEach(btn => {
-  btn.onclick = () => {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
-    document.querySelectorAll('.tabpanel').forEach(p => p.classList.remove('active'))
-    btn.classList.add('active')
-    const panel = document.getElementById('tab-' + btn.dataset.tab!)
-    panel?.classList.add('active')
-  }
+function switchTab(name: string): void {
+  tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === name))
+  tabPanels.forEach(p => p.classList.toggle('active', p.id === 'tab-' + name))
+}
+
+tabBtns.forEach(btn => { btn.onclick = () => switchTab(btn.dataset.tab!) })
+document.querySelectorAll<HTMLButtonElement>('[data-start-recording]').forEach(btn => {
+  btn.onclick = () => recbtn.click()
 })
 
 initEditor(output, preview)
+selectZoom(null)
 
 recbtn.onclick = async () => {
   if (tick) { clearInterval(tick); tick = null }
   let s: MediaStream
   try { s = await startCapture() }
-  catch (err) {
+  catch {
+    stageEmpty.classList.remove('gone')
     timerEl.textContent = 'denied'
     setTimeout(() => { timerEl.textContent = '00:00' }, 1600)
     return
   }
+  app.classList.remove('idle')
+  stageEmpty.classList.add('gone')
+  preview.classList.remove('opacity-0')
   preview.srcObject = s
   chunks = []; zooms = []
+  loadedDuration = 0
+  recordedDuration = 0
   recstart = Date.now()
   rec = new MediaRecorder(s, { mimeType: pickMime() })
   rec.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data) }
@@ -122,6 +159,7 @@ recbtn.onclick = async () => {
 }
 
 stopbtn.onclick = () => {
+  recordedDuration = recstart ? (Date.now() - recstart) / 1000 : recordedDuration
   if (rec?.state === 'recording') rec.stop()
   stopCapture()
   if (tick) { clearInterval(tick); tick = null }
@@ -138,30 +176,137 @@ preview.addEventListener('click', e => {
     t: (Date.now() - recstart) / 1000,
     nx: (e.clientX - rect.left) / rect.width,
     ny: (e.clientY - rect.top) / rect.height,
-    dur: zoomDur
+    dur: defaultDur,
+    zoomlvl: 2.6
   })
 })
 
-function openEditor(): void {
+async function openEditor(): Promise<void> {
+  app.classList.remove('idle')
+  stage.classList.add('gone')
+  editor.classList.remove('gone')
+  tline.classList.remove('gone')
+  showLoadOverlay()
+  const blob = new Blob(chunks, { type: 'video/webm' })
+  recordedDuration = recordedDuration || (recstart ? (Date.now() - recstart) / 1000 : 0)
+  setLoadText('Reading metadata...')
+  const duration = await resolveBlobDuration(blob, recordedDuration)
+  finishOpenEditor(blob, duration)
+}
+
+function finishOpenEditor(blob: Blob, duration: number): void {
+  if (vidUrl) URL.revokeObjectURL(vidUrl)
+  loadedDuration = duration
   vid = document.createElement('video')
   vid.preload = 'auto'
-  vid.ontimeupdate = onTU
+  vid.muted = false
   vid.onplay = () => { playbtn.textContent = 'Pause'; renderLoop() }
   vid.onpause = () => { playbtn.textContent = 'Play' }
   vid.onended = () => { playbtn.textContent = 'Play' }
-  vid.onloadedmetadata = () => {
-    nativeRatio = vid!.videoWidth / vid!.videoHeight
-    vid!.playbackRate = playrate
-    initEditor(output, vid!)
+  vid.ontimeupdate = onTU
+  vidUrl = URL.createObjectURL(blob)
+  vid.src = vidUrl
+  vid.load()
+
+  let initialized = false
+  const tryInit = (force = false) => {
+    if (!vid || initialized) return
+    const d = readableDuration(vid.duration) || loadedDuration
+    const w = vid.videoWidth
+    if (!d || (!force && w === 0)) return
+    initialized = true
+    loadedDuration = d
+    nativeRatio = w && vid.videoHeight ? w / vid.videoHeight : 16 / 9
+    vid.playbackRate = playrate
+    initEditor(output, vid)
+    const hasAudio = (vid.mozHasAudio !== undefined ? vid.mozHasAudio :
+      (vid.webkitAudioDecodedByteCount !== undefined ? vid.webkitAudioDecodedByteCount > 0 : true))
+    wave.style.display = hasAudio ? '' : 'none'
     buildWave()
     setZooms(zooms)
     trimL = 0; trimR = 1
     syncHandles(); syncTimecode(); draw(); syncZdots()
+    hideLoadOverlay()
   }
-  vid.src = URL.createObjectURL(new Blob(chunks, { type: 'video/webm' }))
-  stage.classList.add('gone')
-  editor.classList.remove('gone')
-  tline.classList.remove('gone')
+
+  vid.onloadedmetadata = () => tryInit()
+  vid.ondurationchange = () => tryInit()
+  vid.onloadeddata = () => tryInit()
+  setTimeout(() => tryInit(true), 5000)
+}
+
+function showLoadOverlay(): void {
+  if (loadOverlay) return
+  loadOverlay = document.createElement('div')
+  loadOverlay.className = 'absolute inset-0 z-20 flex flex-col items-center justify-center gap-2.5 bg-[#060607]/85 backdrop-blur-sm'
+  const spinner = document.createElement('div')
+  spinner.className = 'h-[18px] w-[18px] rounded-full border border-white/10 border-t-white/70'
+  spinner.style.animation = 'spin 0.75s linear infinite'
+  if (!document.getElementById('glare-spin-style')) {
+    const style = document.createElement('style')
+    style.id = 'glare-spin-style'
+    style.textContent = `@keyframes spin{to{transform:rotate(360deg)}}`
+    document.head.appendChild(style)
+  }
+  loadLabel = document.createElement('span')
+  loadLabel.textContent = 'Preparing video...'
+  loadLabel.className = 'font-mono text-[10.5px] text-white/40 tabular-nums'
+  loadOverlay.appendChild(spinner)
+  loadOverlay.appendChild(loadLabel)
+  editmain.style.position = 'relative'
+  editmain.appendChild(loadOverlay)
+}
+
+function hideLoadOverlay(): void {
+  if (!loadOverlay) return
+  loadOverlay.remove()
+  loadOverlay = null
+  loadLabel = null
+}
+
+function setLoadText(text: string): void {
+  if (loadLabel) loadLabel.textContent = text
+}
+
+function readableDuration(value: number): number {
+  return isFinite(value) && !isNaN(value) && value > 0 ? value : 0
+}
+
+function resolveBlobDuration(blob: Blob, fallback: number): Promise<number> {
+  return new Promise(resolve => {
+    const probe = document.createElement('video')
+    const probeUrl = URL.createObjectURL(blob)
+    let settled = false
+    let triedSeek = false
+    const finish = (duration = 0) => {
+      if (settled) return
+      settled = true
+      probe.pause()
+      probe.removeAttribute('src')
+      probe.load()
+      URL.revokeObjectURL(probeUrl)
+      resolve(readableDuration(duration) || readableDuration(fallback))
+    }
+    const check = () => {
+      const duration = readableDuration(probe.duration)
+      if (duration) { finish(duration); return }
+      if (!triedSeek && probe.readyState >= 1) {
+        triedSeek = true
+        setLoadText('Repairing duration...')
+        try { probe.currentTime = 1e9 } catch { finish(fallback) }
+      }
+    }
+    probe.preload = 'metadata'
+    probe.muted = true
+    probe.onloadedmetadata = check
+    probe.ondurationchange = check
+    probe.ontimeupdate = check
+    probe.onseeked = check
+    probe.onerror = () => finish(fallback)
+    probe.src = probeUrl
+    probe.load()
+    setTimeout(() => finish(fallback), 5000)
+  })
 }
 
 function buildWave(): void {
@@ -176,8 +321,7 @@ function buildWave(): void {
 
 function safeDuration(): number {
   if (!vid) return 0
-  const d = vid.duration
-  return isFinite(d) && !isNaN(d) && d > 0 ? d : 0
+  return readableDuration(vid.duration) || loadedDuration
 }
 
 function onTU(): void {
@@ -201,6 +345,64 @@ function syncHandles(): void {
   tfill.style.right = ((1 - trimR) * 100) + '%'
 }
 
+function selectZoom(idx: number | null): void {
+  selectedZoomIdx = idx
+  if (idx === null) {
+    ziEmpty.style.display = 'block'
+    ziPanel.style.display = 'none'
+    return
+  }
+  const z = zooms[idx]
+  if (!z) { selectZoom(null); return }
+  ziEmpty.style.display = 'none'
+  ziPanel.style.display = 'block'
+  ziTitle.textContent = `Zoom ${idx + 1}`
+  ziDur.value = String(z.dur)
+  ziDurVal.textContent = z.dur.toFixed(1) + 's'
+  const lvl = z.zoomlvl ?? 2.6
+  ziLvl.value = String(lvl)
+  ziLvlVal.textContent = lvl.toFixed(1) + '×'
+}
+
+function deleteSelectedZoom(): void {
+  if (selectedZoomIdx === null) return
+  const at = selectedZoomIdx
+  zooms.splice(at, 1)
+  setZooms(zooms)
+  selectZoom(zooms.length ? Math.min(at, zooms.length - 1) : null)
+  syncZdots()
+  if (vid) draw(vid.currentTime)
+}
+
+ziDur.oninput = () => {
+  if (selectedZoomIdx === null) return
+  const val = Number(ziDur.value)
+  zooms[selectedZoomIdx] = { ...zooms[selectedZoomIdx], dur: val }
+  ziDurVal.textContent = val.toFixed(1) + 's'
+  setZooms(zooms); syncZdots()
+  if (vid) draw(vid.currentTime)
+}
+
+ziLvl.oninput = () => {
+  if (selectedZoomIdx === null) return
+  const val = Number(ziLvl.value)
+  zooms[selectedZoomIdx] = { ...zooms[selectedZoomIdx], zoomlvl: val }
+  ziLvlVal.textContent = val.toFixed(1) + '×'
+  setZooms(zooms)
+  if (vid) draw(vid.currentTime)
+}
+
+ziDel.onclick = deleteSelectedZoom
+
+document.addEventListener('keydown', e => {
+  if (selectedZoomIdx === null) return
+  const target = e.target as HTMLElement | null
+  if (target?.matches('input, textarea, select') || target?.isContentEditable) return
+  if (e.key !== 'Backspace' && e.key !== 'Delete') return
+  e.preventDefault()
+  deleteSelectedZoom()
+})
+
 function syncZdots(): void {
   if (!vid) return
   const dur = safeDuration()
@@ -208,51 +410,78 @@ function syncZdots(): void {
   const label = `${zooms.length} ${zooms.length === 1 ? 'zoom' : 'zooms'}`
   zcountPill.textContent = label
   if (zcountTab) zcountTab.textContent = label
+  if (zcountEmpty) zcountEmpty.textContent = String(zooms.length)
+  if (selectedZoomIdx !== null && selectedZoomIdx >= zooms.length) selectZoom(null)
 
   zooms.forEach((z, idx) => {
     const startPct = dur ? (z.t / dur * 100) : 0
     const widthPct = dur ? (z.dur / dur * 100) : 0
-
     const pill = document.createElement('div')
-    pill.className = 'zdot pointer-events-auto absolute top-1/2 h-2 min-w-2 translate-y-[-50%] rotate-45 cursor-pointer rounded-[0.5px] border-[0.5px] border-black/50 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.5)]'
+    const isSelected = selectedZoomIdx === idx
+    pill.className = 'zdot pointer-events-auto absolute top-1/2 h-[18px] min-w-3 -translate-y-1/2 cursor-pointer rounded-[3px] border-[0.5px] shadow-[0_1px_2px_rgba(0,0,0,0.5)] transition-[background,border-color] duration-[60ms]'
+    pill.classList.add(isSelected ? 'border-white/50' : 'border-white/20', isSelected ? 'bg-white/30' : 'bg-white/16')
     pill.style.left = startPct + '%'
-    pill.style.width = Math.max(widthPct, 1.2) + '%'
+    pill.style.width = Math.max(widthPct, 1.8) + '%'
 
-    const del = document.createElement('div')
-    del.className = 'zdot-del pointer-events-none absolute top-[-24px] left-1/2 -translate-x-1/2 rotate-[-45deg] whitespace-nowrap rounded-[3px] border-[0.5px] border-line-3 bg-panel-2 px-[5px] py-px text-[9.5px] text-text opacity-0 shadow-[0_2px_8px_rgba(0,0,0,0.4)] transition-opacity duration-[80ms] ease-[ease]'
-    del.textContent = 'Click to delete'
+    const tooltip = document.createElement('div')
+    tooltip.className = 'zdot-del pointer-events-none absolute top-[-24px] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-[3px] border-[0.5px] border-line-3 bg-panel-2 px-[5px] py-px font-mono text-[9.5px] text-text opacity-0 shadow-[0_2px_8px_rgba(0,0,0,0.4)] transition-opacity duration-[80ms] ease-[ease]'
+    tooltip.textContent = `${z.dur.toFixed(1)}s`
 
-    const handle = document.createElement('div')
-    handle.className = 'zdot-resize absolute top-[-2px] right-[-2px] bottom-[-2px] w-[5px] cursor-ew-resize'
-    handle.addEventListener('mousedown', e => {
-      e.stopPropagation(); e.preventDefault()
-      const trackRect = track.getBoundingClientRect()
-      zoomDrag = { idx, startX: e.clientX, origDur: z.dur }
-      const onMove = (ev: MouseEvent) => {
-        if (!zoomDrag || !vid) return
-        const d = safeDuration(); if (!d) return
-        const pxPerSec = trackRect.width / d
-        const newDur = Math.max(0.4, Math.min(d - zooms[zoomDrag.idx].t, zoomDrag.origDur + (ev.clientX - zoomDrag.startX) / pxPerSec))
-        zooms[zoomDrag.idx] = { ...zooms[zoomDrag.idx], dur: newDur }
-        setZooms(zooms); syncZdots(); draw(vid!.currentTime)
-      }
-      const onUp = () => {
-        zoomDrag = null
-        document.removeEventListener('mousemove', onMove)
-        document.removeEventListener('mouseup', onUp)
-      }
-      document.addEventListener('mousemove', onMove)
-      document.addEventListener('mouseup', onUp)
-    })
+    const makeHandle = (edge: 'l' | 'r') => {
+      const handle = document.createElement('div')
+      handle.className = `zdot-resize absolute top-[-3px] bottom-[-3px] ${edge === 'l' ? 'left-[-4px]' : 'right-[-4px]'} w-3 cursor-ew-resize`
+      const grip = document.createElement('span')
+      grip.className = `pointer-events-none absolute top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-[1px] bg-white/85 shadow-[0_1px_2px_rgba(0,0,0,0.55)] ${edge === 'l' ? 'left-[4px]' : 'right-[4px]'}`
+      handle.appendChild(grip)
+      handle.addEventListener('mousedown', e => {
+        e.stopPropagation(); e.preventDefault()
+        selectZoom(idx); syncZdots()
+        const trackRect = track.getBoundingClientRect()
+        zoomDrag = { idx, startX: e.clientX, origT: z.t, origDur: z.dur, edge }
+        const onMove = (ev: MouseEvent) => {
+          if (!zoomDrag || !vid) return
+          const d = safeDuration(); if (!d) return
+          const pxPerSec = trackRect.width / d
+          const delta = (ev.clientX - zoomDrag.startX) / pxPerSec
+          const current = zooms[zoomDrag.idx]
+          if (!current) return
+          if (zoomDrag.edge === 'r') {
+            zooms[zoomDrag.idx] = { ...current, dur: Math.max(0.4, Math.min(d - current.t, zoomDrag.origDur + delta)) }
+          } else {
+            const maxStart = zoomDrag.origT + zoomDrag.origDur - 0.4
+            const newT = Math.max(0, Math.min(maxStart, zoomDrag.origT + delta))
+            zooms[zoomDrag.idx] = { ...current, t: newT, dur: zoomDrag.origDur - (newT - zoomDrag.origT) }
+          }
+          setZooms(zooms); syncZdots(); draw(vid!.currentTime)
+          if (selectedZoomIdx === zoomDrag.idx) selectZoom(zoomDrag.idx)
+        }
+        const onUp = () => {
+          const active = zoomDrag ? zooms[zoomDrag.idx] : null
+          zoomDrag = null
+          if (active) {
+            zooms.sort((a, b) => a.t - b.t)
+            selectedZoomIdx = zooms.indexOf(active)
+            setZooms(zooms); syncZdots(); selectZoom(selectedZoomIdx)
+          }
+          document.removeEventListener('mousemove', onMove)
+          document.removeEventListener('mouseup', onUp)
+        }
+        document.addEventListener('mousemove', onMove)
+        document.addEventListener('mouseup', onUp)
+      })
+      return handle
+    }
 
     pill.addEventListener('click', e => {
+      e.stopPropagation(); e.preventDefault()
       if ((e.target as HTMLElement).closest('.zdot-resize')) return
-      zooms.splice(idx, 1)
-      setZooms(zooms); syncZdots(); draw(vid!.currentTime)
+      selectZoom(selectedZoomIdx === idx ? null : idx)
+      syncZdots()
     })
 
-    pill.appendChild(del)
-    pill.appendChild(handle)
+    pill.appendChild(tooltip)
+    pill.appendChild(makeHandle('l'))
+    pill.appendChild(makeHandle('r'))
     zdots.appendChild(pill)
   })
 }
@@ -279,7 +508,13 @@ track.addEventListener('click', e => {
   const rect = track.getBoundingClientRect()
   const p = Math.max(trimL, Math.min(trimR, (e.clientX - rect.left) / rect.width))
   const dur = safeDuration()
-  if (dur) { vid.currentTime = p * dur; onTU() }
+  if (dur) {
+    const target = p * dur
+    vid.currentTime = target
+    draw(target)
+    phead.style.left = (p * 100) + '%'
+    syncTimecode()
+  }
 })
 
 playbtn.onclick = () => {
@@ -292,14 +527,11 @@ playbtn.onclick = () => {
 }
 
 addzoom.onclick = () => { if (vid) addZoomAt(lastZoomTarget.nx, lastZoomTarget.ny) }
-
+ziAddEmpty.onclick = () => { if (vid) addZoomAt(lastZoomTarget.nx, lastZoomTarget.ny) }
 output.addEventListener('click', e => {
   if (!vid) return
   const rect = output.getBoundingClientRect()
-  addZoomAt(
-    Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
-    Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height))
-  )
+  addZoomAt(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)), Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)))
 })
 
 bgcol1.oninput = () => { colprev1.style.background = bgcol1.value; setBgCol(bgcol1.value, bgcol2.value) }
@@ -309,12 +541,10 @@ rinput.oninput = () => { rval.textContent = rinput.value; setRad(Number(rinput.v
 pinput.oninput = () => { pval.textContent = pinput.value; setPad(Number(pinput.value)) }
 sinput.oninput = () => { sval.textContent = sinput.value; setShad(Number(sinput.value)) }
 soinput.oninput = () => { soval.textContent = soinput.value; setShadop(Number(soinput.value)) }
-zinput.oninput = () => { zval.textContent = zinput.value + '×'; setZoomlvl(Number(zinput.value)) }
 iinput.oninput = () => { ival.textContent = iinput.value + '%'; setInset(Number(iinput.value)) }
 binput.oninput = () => { bval.textContent = binput.value + '%'; setStrokeop(Number(binput.value)) }
 vinput.oninput = () => { vval.textContent = vinput.value + '%'; setVignette(Number(vinput.value)) }
 ginput.oninput = () => { gval.textContent = ginput.value + '%'; setGrain(Number(ginput.value)) }
-dinput.oninput = () => { zoomDur = Number(dinput.value); dval.textContent = zoomDur.toFixed(1) + 's' }
 minput.oninput = () => { mval.textContent = minput.value + '%'; setMotion(Number(minput.value)) }
 
 document.querySelectorAll<HTMLButtonElement>('.preset').forEach(btn => {
@@ -337,9 +567,8 @@ document.querySelectorAll<HTMLElement>('.ratio-btn').forEach(btn => {
     document.querySelectorAll('.ratio-btn').forEach(b => b.classList.remove('active'))
     btn.classList.add('active')
     const r = btn.dataset.r!
-    if (r === 'original') {
-      setRatio(nativeRatio)
-    } else {
+    if (r === 'original') setRatio(nativeRatio)
+    else {
       const parts = r.split('/').map(Number)
       setRatio(parts[0] / parts[1])
     }
@@ -348,16 +577,23 @@ document.querySelectorAll<HTMLElement>('.ratio-btn').forEach(btn => {
 
 again.onclick = () => {
   if (vid) { vid.pause(); vid.src = '' }
+  if (vidUrl) { URL.revokeObjectURL(vidUrl); vidUrl = null }
   if (raf) cancelAnimationFrame(raf)
   vid = null; chunks = []; zooms = []
+  loadedDuration = 0; recordedDuration = 0
+  selectedZoomIdx = null
+  selectZoom(null); hideLoadOverlay()
   tline.classList.add('gone'); editor.classList.add('gone'); stage.classList.remove('gone')
+  stageEmpty.classList.remove('gone')
+  app.classList.add('idle')
+  preview.classList.add('opacity-0')
   initEditor(output, preview)
   timerEl.textContent = '00:00'
 }
 
 dlwebm.onclick = async () => {
   dlwebm.disabled = true
-  progtxt.textContent = 'rendering…'; progtxt.classList.remove('gone')
+  progtxt.textContent = 'rendering...'; progtxt.classList.remove('gone')
   try { dlWebm(await renderEditedBlob()) }
   finally { progtxt.classList.add('gone'); dlwebm.disabled = false }
 }
@@ -365,14 +601,39 @@ dlwebm.onclick = async () => {
 dlmp4.onclick = async () => {
   dlmp4.disabled = true; prog.classList.remove('gone'); progtxt.classList.remove('gone')
   try {
-    progtxt.textContent = 'rendering edit…'
+    progtxt.textContent = 'rendering edit...'
     const edited = await renderEditedBlob()
-    progtxt.textContent = 'encoding mp4…'
-    await toMp4(edited, p => { progbar.style.width = p + '%' }, msg => { progtxt.textContent = msg.slice(0, 40) })
+    progtxt.textContent = 'encoding mp4...'
+    await toMp4(edited, getMp4Options(), p => { progbar.style.width = p + '%' }, msg => { progtxt.textContent = msg.slice(0, 40) })
   } finally {
     prog.classList.add('gone'); progtxt.classList.add('gone')
     progbar.style.width = '0%'; dlmp4.disabled = false
   }
+}
+
+fpsinput.oninput = () => {
+  exportFps = [24, 30, 60][Number(fpsinput.value)] || 60
+  fpsval.textContent = String(exportFps)
+}
+qinput.oninput = () => {
+  exportQuality = Number(qinput.value)
+  qval.textContent = ['Draft', 'High', 'Max'][exportQuality] || 'High'
+}
+scaleinput.oninput = () => {
+  exportScale = Number(scaleinput.value) / 100
+  scaleval.textContent = scaleinput.value + '%'
+}
+
+function getMp4Options(): Mp4Options {
+  return [
+    { crf: 28, preset: 'veryfast' },
+    { crf: 22, preset: 'fast' },
+    { crf: 18, preset: 'slow' }
+  ][exportQuality] as Mp4Options
+}
+
+function getVideoBitsPerSecond(): number {
+  return [3_500_000, 8_000_000, 16_000_000][exportQuality] || 8_000_000
 }
 
 dlpng.onclick = async () => {
@@ -406,9 +667,17 @@ async function renderEditedBlob(): Promise<Blob> {
   if (!vid) return new Blob(chunks, { type: 'video/webm' })
   const wasPaused = vid.paused
   const before = vid.currentTime
+  const beforeRate = vid.playbackRate
   const dur = safeDuration()
-  const stream = output.captureStream(60)
-  const recorder = new MediaRecorder(stream, { mimeType: pickMime() })
+  const baseW = output.width
+  const baseH = output.height
+  if (exportScale < 1) {
+    output.width = Math.max(2, Math.round(baseW * exportScale))
+    output.height = Math.max(2, Math.round(baseH * exportScale))
+  }
+  vid.playbackRate = 1
+  const stream = output.captureStream(exportFps)
+  const recorder = new MediaRecorder(stream, { mimeType: pickMime(), videoBitsPerSecond: getVideoBitsPerSecond() })
   const rendered: Blob[] = []
   recorder.ondataavailable = e => { if (e.data.size > 0) rendered.push(e.data) }
   await seekTo(trimL * dur)
@@ -423,7 +692,15 @@ async function renderEditedBlob(): Promise<Blob> {
     step()
   })
   const blob = await stopped
-  vid.pause(); await seekTo(before)
+  stream.getTracks().forEach(track => track.stop())
+  vid.pause()
+  vid.playbackRate = beforeRate
+  if (output.width !== baseW || output.height !== baseH) {
+    output.width = baseW
+    output.height = baseH
+  }
+  await seekTo(before)
+  draw(vid.currentTime)
   if (!wasPaused) void vid.play()
   return blob
 }
@@ -431,17 +708,26 @@ async function renderEditedBlob(): Promise<Blob> {
 function addZoomAt(nx: number, ny: number): void {
   if (!vid) return
   lastZoomTarget = { nx, ny }
-  zooms.push({ t: vid.currentTime, nx, ny, dur: zoomDur })
+  const newZoom: Zoom = { t: vid.currentTime, nx, ny, dur: defaultDur, zoomlvl: 2.6 }
+  zooms.push(newZoom)
   zooms.sort((a, b) => a.t - b.t)
-  setZooms(zooms); syncZdots(); draw(vid.currentTime)
+  const newIdx = zooms.indexOf(newZoom)
+  setZooms(zooms)
+  syncZdots()
+  selectZoom(newIdx)
+  switchTab('zoom')
+  draw(vid.currentTime)
 }
 
-clearzooms.onclick = () => {
+function clearAllZooms(): void {
   zooms = []
   setZooms(zooms)
+  selectZoom(null)
   syncZdots()
   if (vid) draw(vid.currentTime)
 }
+
+clearzooms.onclick = clearAllZooms
 
 document.querySelectorAll<HTMLButtonElement>('.speed-btn').forEach(btn => {
   btn.onclick = () => {
@@ -462,7 +748,19 @@ function seekTo(time: number): Promise<void> {
   return new Promise(resolve => {
     if (!vid) { resolve(); return }
     if (Math.abs(vid.currentTime - time) < .01) { onTU(); resolve(); return }
+    vid.onseeked = () => {
+      if (!vid) return
+      vid.onseeked = null
+      onTU()
+      resolve()
+    }
     vid.currentTime = time
-    vid.onseeked = () => { if (!vid) return; vid.onseeked = null; onTU(); resolve() }
   })
+}
+
+declare global {
+  interface HTMLVideoElement {
+    mozHasAudio?: boolean
+    webkitAudioDecodedByteCount?: number
+  }
 }

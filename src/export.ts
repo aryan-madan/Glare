@@ -3,6 +3,11 @@ import { fetchFile, toBlobURL } from '@ffmpeg/util'
 
 let ff: FFmpeg | null = null
 
+export interface Mp4Options {
+  crf: number
+  preset: 'ultrafast' | 'superfast' | 'veryfast' | 'faster' | 'fast' | 'medium' | 'slow'
+}
+
 async function getFF(onLog: (s: string) => void): Promise<FFmpeg> {
   if (ff) return ff
   ff = new FFmpeg()
@@ -28,13 +33,22 @@ export function dlWebm(input: Blob | Blob[]): void {
 
 export async function toMp4(
   input: Blob | Blob[],
+  options: Mp4Options,
   onProg: (n: number) => void,
   onLog: (s: string) => void
 ): Promise<void> {
   const inst = await getFF(onLog)
   inst.on('progress', ({ progress }) => onProg(Math.round(Math.min(progress * 100, 100))))
   await inst.writeFile('in.webm', await fetchFile(asBlob(input)))
-  await inst.exec(['-i', 'in.webm', '-c:v', 'libx264', '-preset', 'fast', '-crf', '22', '-movflags', '+faststart', 'out.mp4'])
+  await inst.exec([
+    '-i', 'in.webm',
+    '-c:v', 'libx264',
+    '-preset', options.preset,
+    '-crf', String(options.crf),
+    '-pix_fmt', 'yuv420p',
+    '-movflags', '+faststart',
+    'out.mp4'
+  ])
   const data = await inst.readFile('out.mp4') as Uint8Array
   const body = new Uint8Array(data)
   const a = document.createElement('a')

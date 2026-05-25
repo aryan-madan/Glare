@@ -13,7 +13,7 @@
 </head>
 
 <body>
-  <div id="app" class="flex h-full w-full flex-col">
+  <div id="app" class="idle flex h-full w-full flex-col">
     <header id="hud" class="z-10 flex h-9 shrink-0 items-center justify-between border-b border-line bg-panel px-3.5">
       <span id="wordmark" class="text-[11.5px] font-semibold text-white/90 tracking-[-0.1px]">Glare</span>
       <div id="hudright" class="flex items-center gap-1.5">
@@ -21,17 +21,30 @@
         <span id="timer"
           class="grid h-5 min-w-11 place-items-center font-mono text-[10.5px] text-text-2 tabular-nums">00:00</span>
         <button id="recbtn"
-          class="hud-btn h-[22px] cursor-default rounded border-[0.5px] border-black/40 bg-white px-[9px] text-[11px] font-medium text-[#0a0d10] shadow-[0_1px_1px_rgba(0,0,0,0.2)] transition-[background,border-color] duration-[80ms] hover:enabled:bg-[#e5e5ea] active:enabled:bg-[#aeaeb2] disabled:opacity-25 disabled:shadow-none">Record</button>
+          class="btn-3d btn-3d-primary hud-btn h-[22px] cursor-default rounded px-[9px] text-[11px] font-medium disabled:opacity-25 disabled:shadow-none">Record</button>
         <button id="stopbtn"
-          class="hud-btn h-[22px] cursor-default rounded border-[0.5px] border-black/50 bg-[linear-gradient(180deg,#2c2c2e_0%,#222224_100%)] px-[9px] text-[11px] font-normal text-white/85 shadow-[0_1px_1px_rgba(0,0,0,0.2)] transition-[background,border-color] duration-[80ms] hover:enabled:bg-[linear-gradient(180deg,#3a3a3c_0%,#2c2c2e_100%)] active:enabled:bg-[#1c1c1e] disabled:opacity-25 disabled:shadow-none"
+          class="btn-3d btn-3d-dark hud-btn h-[22px] cursor-default rounded px-[9px] text-[11px] font-normal disabled:opacity-25 disabled:shadow-none"
           disabled>Stop</button>
       </div>
     </header>
 
-    <div id="stage" class="relative grid min-h-0 flex-1 place-items-center bg-[#060607]">
+    <div id="stage" class="relative grid min-h-0 flex-1 place-items-center overflow-hidden bg-[#080809]">
       <video id="preview"
-        class="h-[calc(100%-48px)] w-[calc(100%-48px)] rounded-lg bg-black object-contain shadow-glare" autoplay muted
-        playsinline></video>
+        class="h-[calc(100%-48px)] w-[calc(100%-48px)] rounded-lg border border-line bg-black object-contain opacity-0 shadow-glare transition-opacity duration-150"
+        autoplay muted playsinline></video>
+      <div id="stage-empty" class="pointer-events-none absolute inset-0 grid place-items-center px-6">
+        <div class="pointer-events-auto flex w-full max-w-[440px] flex-col items-center text-center">
+          <h1 class="mt-3 text-[64px] font-semibold leading-none tracking-[0px] text-white">Glare</h1>
+          <div class="mt-7 flex w-full max-w-[330px] flex-col gap-2">
+            <button id="startrec" data-start-recording
+              class="btn-3d btn-3d-primary h-10 cursor-default rounded px-4 text-[12px] font-semibold">Start new
+              recording</button>
+            <button data-start-recording
+              class="btn-3d btn-3d-dark h-9 cursor-default rounded px-4 text-[11.5px] font-medium">Record
+              screen</button>
+          </div>
+        </div>
+      </div>
       <div id="hint"
         class="pointer-events-none absolute bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded border-[0.5px] border-line-2 bg-panel-2 px-2.5 py-1 text-[10.5px] text-text-2 opacity-0 shadow-[0_4px_16px_rgba(0,0,0,0.4)] transition-opacity duration-[120ms] ease-[ease]">
         Click while recording to add zooms</div>
@@ -69,6 +82,7 @@
           </button>
         </div>
 
+        <!-- BG TAB -->
         <div class="tabpanel active flex-1 overflow-y-auto overflow-x-hidden" id="tab-background">
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
             <div class="sp-label mb-2 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Presets</div>
@@ -123,7 +137,6 @@
               </button>
             </div>
           </div>
-
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
             <div class="sp-label mb-2 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Custom
               gradient</div>
@@ -153,7 +166,6 @@
               </div>
             </div>
           </div>
-
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
             <div class="sp-row mb-1.5 flex items-center justify-between">
               <span class="sp-label block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3"
@@ -164,6 +176,7 @@
           </div>
         </div>
 
+        <!-- FRAME TAB -->
         <div class="tabpanel flex-1 overflow-y-auto overflow-x-hidden" id="tab-frame">
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
             <div class="sp-label mb-2 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Aspect ratio
@@ -196,7 +209,6 @@
               </button>
             </div>
           </div>
-
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
             <div class="sp-row mb-1.5 flex items-center justify-between">
               <span class="sp-label block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3"
@@ -205,7 +217,6 @@
             </div>
             <input type="range" id="rinput" min="0" max="44" value="24" step="1" />
           </div>
-
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
             <div class="sp-row mb-1.5 flex items-center justify-between">
               <span class="sp-label block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3"
@@ -214,7 +225,6 @@
             </div>
             <input type="range" id="pinput" min="0" max="140" value="76" step="4" />
           </div>
-
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
             <div class="sp-row mb-1.5 flex items-center justify-between">
               <span class="sp-label block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3"
@@ -223,7 +233,6 @@
             </div>
             <input type="range" id="iinput" min="60" max="100" value="94" step="1" />
           </div>
-
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
             <div class="sp-label mb-2 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Shadow</div>
             <div class="sp-row mb-1.5 flex items-center justify-between" style="margin-top:6px">
@@ -237,7 +246,6 @@
             </div>
             <input type="range" id="soinput" min="0" max="80" value="26" step="1" />
           </div>
-
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
             <div class="sp-label mb-2 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Finish</div>
             <div class="sp-row mb-1.5 flex items-center justify-between">
@@ -256,66 +264,97 @@
             </div>
             <input type="range" id="ginput" min="0" max="100" value="0" step="1" />
           </div>
-        </div>
-
-        <div class="tabpanel flex-1 overflow-y-auto overflow-x-hidden" id="tab-zoom">
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
             <div class="sp-row mb-1.5 flex items-center justify-between">
-              <span class="sp-label block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3"
-                style="margin:0">Zoom level</span>
-              <span class="sp-val font-mono text-[10.5px] text-white/40 tabular-nums" id="zval">2.6×</span>
-            </div>
-            <input type="range" id="zinput" min="1.2" max="4" value="2.6" step=".1" />
-            <div class="sp-hint mt-1.5 text-[10.5px] leading-[1.4] text-text-3">Click the canvas or timeline to place
-              zooms. Click a zoom pill to delete it.</div>
-          </div>
-          <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
-            <div class="sp-row mb-1.5 flex items-center justify-between">
-              <span class="sp-label block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3"
-                style="margin:0">Duration</span>
-              <span class="sp-val font-mono text-[10.5px] text-white/40 tabular-nums" id="dval">2.2s</span>
-            </div>
-            <input type="range" id="dinput" min=".4" max="5" value="2.2" step=".1" />
-            <div class="sp-row mb-1.5 flex items-center justify-between" style="margin-top:10px">
               <span class="sp-label block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3"
                 style="margin:0">Motion blur</span>
               <span class="sp-val font-mono text-[10.5px] text-white/40 tabular-nums" id="mval">55%</span>
             </div>
             <input type="range" id="minput" min="0" max="100" value="55" step="1" />
           </div>
-          <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
-            <div class="sp-label mb-2 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Zoom count
-            </div>
-            <div
-              class="zoom-stat flex h-6 items-center rounded border-[0.5px] border-line-2 bg-[#0a0a0b] px-2 font-mono text-[10.5px] text-white/40">
-              <span id="zcount">0 zooms</span></div>
-            <button id="clearzooms"
-              class="mt-[5px] flex h-6 w-full cursor-default items-center rounded border-[0.5px] border-line-2 bg-panel-2 px-2 text-[10.5px] text-text-2 transition-all duration-[80ms] hover:bg-panel-3 hover:text-text">Clear
-              zooms</button>
-          </div>
         </div>
 
+        <!-- ZOOM TAB -->
+        <div class="tabpanel flex-1 overflow-y-auto overflow-x-hidden" id="tab-zoom">
+          <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
+            <div class="mb-2 flex items-center justify-between">
+              <span class="block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Zooms</span>
+              <span id="zcount-empty" class="font-mono text-[10.5px] text-white/40 tabular-nums">0</span>
+            </div>
+            <button id="zi-add-empty"
+              class="btn-3d btn-3d-dark flex h-6 w-full cursor-default items-center justify-center rounded px-2 text-[10.5px]">Add
+              zoom at playhead</button>
+          </div>
+          <div id="zi-panel" style="display:none">
+            <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
+              <span id="zi-title"
+                class="mb-2.5 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Selected
+                zoom</span>
+              <div class="sp-row mb-1.5 flex items-center justify-between">
+                <span class="sp-sublabel text-[11px] text-text-2">Zoom level</span>
+                <span class="sp-val font-mono text-[10.5px] text-white/40 tabular-nums" id="zi-lvlval">2.6×</span>
+              </div>
+              <input type="range" id="zi-lvl" min="1.2" max="5" value="2.6" step=".1" />
+              <div class="sp-row mb-1.5 flex items-center justify-between" style="margin-top:10px">
+                <span class="sp-sublabel text-[11px] text-text-2">Duration</span>
+                <span class="sp-val font-mono text-[10.5px] text-white/40 tabular-nums" id="zi-durval">2.2s</span>
+              </div>
+              <input type="range" id="zi-dur" min=".4" max="8" value="2.2" step=".1" />
+              <button id="zi-del"
+                class="btn-3d btn-3d-danger mt-3 flex h-6 w-full cursor-default items-center justify-center rounded px-2 text-[10.5px] font-medium active:opacity-70">Delete
+                selected zoom</button>
+            </div>
+          </div>
+          <div id="zi-empty" class="sp-section px-3 pt-3 pb-3.5">
+            <p class="text-[10.5px] leading-[1.45] text-text-3">Select a timeline zoom to tune level. Drag either edge
+              of the zoom segment to change its duration.</p>
+          </div>
+          <span id="zcount" class="gone">0 zooms</span>
+          <button id="clearzooms" class="gone" type="button">Clear all zooms</button>
+
+        </div>
+
+        <!-- EXPORT TAB -->
         <div class="tabpanel flex-1 overflow-y-auto overflow-x-hidden" id="tab-export">
+          <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
+            <div class="sp-label mb-2 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Settings
+            </div>
+            <div class="sp-row mb-1.5 flex items-center justify-between">
+              <span class="sp-sublabel text-[11px] text-text-2">FPS</span>
+              <span class="sp-val font-mono text-[10.5px] text-white/40 tabular-nums" id="fpsval">60</span>
+            </div>
+            <input type="range" id="fpsinput" min="0" max="2" value="2" step="1" />
+            <div class="sp-row mb-1.5 flex items-center justify-between" style="margin-top:10px">
+              <span class="sp-sublabel text-[11px] text-text-2">Quality</span>
+              <span class="sp-val font-mono text-[10.5px] text-white/40 tabular-nums" id="qval">High</span>
+            </div>
+            <input type="range" id="qinput" min="0" max="2" value="1" step="1" />
+            <div class="sp-row mb-1.5 flex items-center justify-between" style="margin-top:10px">
+              <span class="sp-sublabel text-[11px] text-text-2">Scale</span>
+              <span class="sp-val font-mono text-[10.5px] text-white/40 tabular-nums" id="scaleval">100%</span>
+            </div>
+            <input type="range" id="scaleinput" min="50" max="100" value="100" step="25" />
+          </div>
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
             <div class="sp-label mb-2 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Download
             </div>
             <div class="export-btns flex flex-col gap-[5px]">
               <button id="dlwebm"
-                class="export-btn flex h-6 w-full cursor-default items-center gap-1.5 rounded border-[0.5px] border-black/40 bg-[linear-gradient(180deg,#2c2c2e_0%,#222224_100%)] px-2 text-[11.5px] text-white/85 transition-all duration-[80ms] hover:enabled:bg-[linear-gradient(180deg,#3a3a3c_0%,#2c2c2e_100%)] active:enabled:bg-[#1c1c1e] disabled:opacity-20 [&_span:nth-child(2)]:flex-1 [&_span:nth-child(2)]:text-left">
+                class="btn-3d btn-3d-dark export-btn flex h-6 w-full cursor-default items-center gap-1.5 rounded px-2 text-[11.5px] disabled:opacity-20 [&_span:nth-child(2)]:flex-1 [&_span:nth-child(2)]:text-left">
                 <i data-lucide="download"></i>
                 <span>WebM</span>
                 <span
                   class="export-badge rounded-[2px] bg-black/20 px-[3px] py-px font-mono text-[8.5px] text-white/25">Fast</span>
               </button>
               <button id="dlmp4"
-                class="export-btn export-primary flex h-6 w-full cursor-default items-center gap-1.5 rounded border-[0.5px] border-black/30 bg-white px-2 text-[11.5px] font-medium text-[#0a0d10] transition-all duration-[80ms] hover:enabled:bg-[#e5e5ea] active:enabled:bg-[#aeaeb2] disabled:opacity-20 [&_span:nth-child(2)]:flex-1 [&_span:nth-child(2)]:text-left">
+                class="btn-3d btn-3d-primary export-btn export-primary flex h-6 w-full cursor-default items-center gap-1.5 rounded px-2 text-[11.5px] font-medium disabled:opacity-20 [&_span:nth-child(2)]:flex-1 [&_span:nth-child(2)]:text-left">
                 <i data-lucide="download"></i>
                 <span>MP4</span>
                 <span
                   class="export-badge rounded-[2px] bg-black/5 px-[3px] py-px font-mono text-[8.5px] text-black/40">Compatible</span>
               </button>
               <button id="dlpng"
-                class="export-btn flex h-6 w-full cursor-default items-center gap-1.5 rounded border-[0.5px] border-black/40 bg-[linear-gradient(180deg,#2c2c2e_0%,#222224_100%)] px-2 text-[11.5px] text-white/85 transition-all duration-[80ms] hover:enabled:bg-[linear-gradient(180deg,#3a3a3c_0%,#2c2c2e_100%)] active:enabled:bg-[#1c1c1e] disabled:opacity-20 [&_span:nth-child(2)]:flex-1 [&_span:nth-child(2)]:text-left">
+                class="btn-3d btn-3d-dark export-btn flex h-6 w-full cursor-default items-center gap-1.5 rounded px-2 text-[11.5px] disabled:opacity-20 [&_span:nth-child(2)]:flex-1 [&_span:nth-child(2)]:text-left">
                 <i data-lucide="download"></i>
                 <span>PNG frame</span>
                 <span
@@ -330,7 +369,7 @@
           </div>
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
             <button id="again"
-              class="new-rec-btn flex h-6 w-full cursor-default items-center gap-1.5 rounded border-[0.5px] border-line-2 bg-panel-2 px-2 text-[10.5px] text-text-2 transition-all duration-[80ms] hover:bg-panel-3 hover:text-text">
+              class="btn-3d btn-3d-dark new-rec-btn flex h-6 w-full cursor-default items-center gap-1.5 rounded px-2 text-[10.5px]">
               <i data-lucide="rotate-ccw"></i>
               New recording
             </button>
@@ -343,7 +382,7 @@
     <div id="tline" class="gone h-[92px] shrink-0 border-t border-line bg-panel">
       <div id="tbar" class="flex h-8 items-center gap-1.5 border-b border-line px-3">
         <button id="playbtn"
-          class="h-5 min-w-11 cursor-default rounded-[3px] border-[0.5px] border-black/40 bg-[linear-gradient(180deg,#2c2c2e_0%,#222224_100%)] px-2 text-[10.5px] text-white/85 hover:bg-[linear-gradient(180deg,#3a3a3c_0%,#2c2c2e_100%)] active:bg-[#1c1c1e]">Play</button>
+          class="btn-3d btn-3d-dark h-5 min-w-11 cursor-default rounded-[3px] px-2 text-[10.5px]">Play</button>
         <span id="tcode" class="font-mono text-[10.5px] text-white/40 tabular-nums">0:00 / 0:00</span>
         <span id="zcount-pill"
           class="grid h-4 place-items-center rounded-[3px] border-[0.5px] border-line-2 bg-[#0a0a0b] px-[5px] font-mono text-[9.5px] text-text-3">0
@@ -358,8 +397,7 @@
           <button class="speed-btn h-5 cursor-default bg-[#0a0a0b] px-1.5 text-[9.5px] text-text-3"
             data-speed="2">2×</button>
         </div>
-        <button id="addzoom"
-          class="ml-auto h-5 cursor-default rounded-[3px] border-[0.5px] border-line-3 bg-panel-3 px-2 text-[10.5px] text-text hover:bg-[#2c2c2f]">+
+        <button id="addzoom" class="btn-3d btn-3d-dark ml-auto h-5 cursor-default rounded-[3px] px-2 text-[10.5px]">+
           Add zoom</button>
       </div>
       <div id="track"
