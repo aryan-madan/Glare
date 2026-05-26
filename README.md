@@ -2,6 +2,12 @@
 
 # Create and edit beautiful screen recordings, locally in your browser.
 
+## Demo
+
+![Glare](src/assets/glare.gif)
+
+This .gif was created with Glare.
+
 ## Why
 Glare was created to make good looking screen recordings, quickly. 
 It was created to save time editing.
