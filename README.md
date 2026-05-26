@@ -16,7 +16,7 @@ Glare works best on Chrome or Chromium based browsers due to some limitations wi
 
 ## Screens
 
-![Start Screen](src/assets/editor.png)
+![Start Screen](src/assets/start.png)
 
 ![Editor Screen](src/assets/editor.png)
 
