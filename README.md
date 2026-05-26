@@ -1,10 +1,10 @@
-![Glare](src/assets/banner.png)
+![Glare](public/assets/banner.png)
 
 # Create and edit beautiful screen recordings, locally in your browser.
 
 ## Demo
 
-![Glare](src/assets/glare.gif)
+![Glare](public/assets/glare.gif)
 
 This .gif was created with Glare.
 
@@ -22,9 +22,9 @@ Glare works best on Chrome or Chromium based browsers due to some limitations wi
 
 ## Screens
 
-![Start Screen](src/assets/start.png)
+![Start Screen](public/assets/start.png)
 
-![Editor Screen](src/assets/editor.png)
+![Editor Screen](public/assets/editor.png)
 
 ## AI Usage
 - motion blur
