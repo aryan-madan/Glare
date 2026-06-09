@@ -1,12 +1,11 @@
 import './main.css'
-import { startCapture, stopCapture } from './capture'
-import { initEditor, setBgCol, setBgAng, setRad, setPad, setShad, setShadop, setInset, setStrokeop, setVignette, setGrain, setMotion, setRatio, setZooms, draw } from './editor'
+import { startCapture, startMic, startCam, stopCapture, enumerateDevices } from './capture'
+import { initEditor, setBgCol, setBgAng, setRad, setPad, setShad, setShadop, setInset, setStrokeop, setVignette, setGrain, setMotion, setRatio, setZooms, draw, setCamVideo, setOverlay, getOverlay } from './editor'
 import type { Zoom } from './editor'
-import { dlWebm, toMp4, toGif } from './export'
+import { toMp4, toGif } from './export'
 import type { Mp4Options } from './export'
-
-import { createIcons, Image, Frame, ZoomIn, Download, ArrowRight, RotateCcw } from 'lucide'
-createIcons({ icons: { Image, Frame, ZoomIn, Download, ArrowRight, RotateCcw } })
+import { createIcons, Image, Frame, ZoomIn, Download, ArrowRight, RotateCcw, Video } from 'lucide'
+createIcons({ icons: { Image, Frame, ZoomIn, Download, ArrowRight, RotateCcw, Video } })
 
 const app = document.getElementById('app') as HTMLDivElement
 const preview = document.getElementById('preview') as HTMLVideoElement
@@ -41,9 +40,12 @@ const tfill = document.getElementById('tfill') as HTMLDivElement
 const phead = document.getElementById('phead') as HTMLDivElement
 const zdots = document.getElementById('zdots') as HTMLDivElement
 const wave = document.getElementById('wave') as HTMLDivElement
-const prog = document.getElementById('prog') as HTMLDivElement
+const micwave = document.getElementById('micwave') as HTMLDivElement
+const mictrack = document.getElementById('mictrack') as HTMLDivElement
+const michead = document.getElementById('michead') as HTMLDivElement
+/* const prog = document.getElementById('prog') as HTMLDivElement
 const progbar = document.getElementById('progbar') as HTMLDivElement
-const progtxt = document.getElementById('progtxt') as HTMLSpanElement
+const progtxt = document.getElementById('progtxt') as HTMLSpanElement */
 
 const bgcol1 = document.getElementById('bgcol1') as HTMLInputElement
 const bgcol2 = document.getElementById('bgcol2') as HTMLInputElement
@@ -91,6 +93,34 @@ const tabBtns = document.querySelectorAll<HTMLButtonElement>('.tab')
 const tabPanels = document.querySelectorAll<HTMLElement>('.tabpanel')
 const editmain = document.getElementById('editmain') as HTMLDivElement
 
+const camToggleInput = document.getElementById('cam-visible') as HTMLInputElement
+const camCornerBtns = document.querySelectorAll<HTMLButtonElement>('.cam-corner-btn')
+const camSizeInput = document.getElementById('cam-size') as HTMLInputElement
+const camSizeVal = document.getElementById('cam-size-val') as HTMLSpanElement
+const camRadInput = document.getElementById('cam-rad') as HTMLInputElement
+const camRadVal = document.getElementById('cam-rad-val') as HTMLSpanElement
+const camPadInput = document.getElementById('cam-pad') as HTMLInputElement
+const camPadVal = document.getElementById('cam-pad-val') as HTMLSpanElement
+const camPreviewWrap = document.getElementById('cam-preview-wrap') as HTMLDivElement
+const camPreviewVid = document.getElementById('cam-preview-vid') as HTMLVideoElement
+const camNoSignal = document.getElementById('cam-no-signal') as HTMLDivElement
+
+const devModal = document.getElementById('dev-modal') as HTMLDivElement
+const devModalConfirm = document.getElementById('dev-modal-confirm') as HTMLButtonElement
+const devModalCancel = document.getElementById('dev-modal-cancel') as HTMLButtonElement
+const devMicSel = document.getElementById('dev-mic-sel') as HTMLSelectElement
+const devCamSel = document.getElementById('dev-cam-sel') as HTMLSelectElement
+
+const exportModal = document.getElementById('export-modal') as HTMLDivElement
+const exportModalBar = document.getElementById('export-modal-bar') as HTMLDivElement
+const exportModalStatus = document.getElementById('export-modal-status') as HTMLSpanElement
+const exportModalPhase = document.getElementById('export-modal-phase') as HTMLSpanElement
+const exportModalDone = document.getElementById('export-modal-done') as HTMLDivElement
+const exportModalProgress = document.getElementById('export-modal-progress') as HTMLDivElement
+const exportModalNewRec = document.getElementById('export-modal-new-rec') as HTMLButtonElement
+const exportModalBackEdit = document.getElementById('export-modal-back-edit') as HTMLButtonElement
+const exportModalDlAgain = document.getElementById('export-modal-dl-again') as HTMLButtonElement
+
 let loadOverlay: HTMLDivElement | null = null
 let loadLabel: HTMLSpanElement | null = null
 let chunks: Blob[] = []
@@ -116,6 +146,17 @@ let selectedZoomIdx: number | null = null
 let exportFps = 60
 let exportQuality = 1
 let exportScale = 1
+let activeCamStream: MediaStream | null = null
+let activeMicStream: MediaStream | null = null
+let camVideoEl: HTMLVideoElement | null = null
+let hadMicDuringRecording = false
+let audioCtx: AudioContext | null = null
+let audioCtxSource: MediaElementAudioSourceNode | null = null
+let camRecorder: MediaRecorder | null = null
+let camChunks: Blob[] = []
+let camBlobUrl: string | null = null
+let lastExportedBlob: Blob | null = null
+let lastExportedExt: string = 'webm'
 
 function switchTab(name: string): void {
   tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === name))
@@ -152,7 +193,7 @@ stageEmpty.addEventListener('drop', async e => {
   e.preventDefault()
   stageEmpty.classList.remove('dragging')
   dropcopy.textContent = 'Drop MP4, MOV, or WebM'
-  const file = Array.from(e.dataTransfer?.files || []).find(file => file.type.startsWith('video/'))
+  const file = Array.from(e.dataTransfer?.files || []).find(f => f.type.startsWith('video/'))
   if (!file) return
   await loadDroppedOrPickedVideo(file)
 })
@@ -160,8 +201,123 @@ stageEmpty.addEventListener('drop', async e => {
 initEditor(output, preview)
 selectZoom(null)
 
+function showExportModal(): void {
+  exportModalProgress.style.display = 'flex'
+  exportModalDone.style.display = 'none'
+  exportModalBar.style.width = '0%'
+  exportModalStatus.textContent = 'Preparing...'
+  exportModalPhase.textContent = ''
+  exportModal.classList.remove('gone')
+  requestAnimationFrame(() => exportModal.classList.add('modal-in'))
+}
+
+function updateExportProgress(pct: number, status: string, phase = ''): void {
+  exportModalBar.style.width = pct + '%'
+  exportModalStatus.textContent = status
+  exportModalPhase.textContent = phase
+}
+
+function showExportDone(blob: Blob, ext: string): void {
+  lastExportedBlob = blob
+  lastExportedExt = ext
+  exportModalProgress.style.display = 'none'
+  exportModalDone.style.display = 'flex'
+  exportModalBar.style.width = '100%'
+}
+
+function hideExportModal(): void {
+  exportModal.classList.remove('modal-in')
+  setTimeout(() => exportModal.classList.add('gone'), 200)
+}
+
+exportModalBackEdit.onclick = () => hideExportModal()
+
+exportModalDlAgain.onclick = () => {
+  if (!lastExportedBlob) return
+  triggerDownload(lastExportedBlob, `glare-export-${Date.now()}.${lastExportedExt}`)
+}
+
+exportModalNewRec.onclick = () => {
+  hideExportModal()
+  setTimeout(() => again.click(), 210)
+}
+
+function triggerDownload(blob: Blob, filename: string): void {
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = filename
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000)
+}
+
+async function openDevModal(): Promise<{ micId: string; camId: string } | null> {
+  devMicSel.innerHTML = ''
+  devCamSel.innerHTML = ''
+
+  try {
+    const { mics, cams } = await enumerateDevices()
+
+    const micNone = document.createElement('option')
+    micNone.value = ''
+    micNone.textContent = 'No microphone'
+    devMicSel.appendChild(micNone)
+
+    mics.forEach(d => {
+      const o = document.createElement('option')
+      o.value = d.deviceId
+      o.textContent = d.label || `Microphone ${devMicSel.options.length}`
+      devMicSel.appendChild(o)
+    })
+    if (devMicSel.options.length > 1) devMicSel.selectedIndex = 1
+
+    const camNone = document.createElement('option')
+    camNone.value = ''
+    camNone.textContent = 'No camera'
+    devCamSel.appendChild(camNone)
+
+    cams.forEach(d => {
+      const o = document.createElement('option')
+      o.value = d.deviceId
+      o.textContent = d.label || `Camera ${devCamSel.options.length}`
+      devCamSel.appendChild(o)
+    })
+    if (devCamSel.options.length > 1) devCamSel.selectedIndex = 1
+  } catch {
+    const errMic = document.createElement('option')
+    errMic.textContent = 'No permission'
+    devMicSel.appendChild(errMic)
+    const errCam = document.createElement('option')
+    errCam.textContent = 'No permission'
+    devCamSel.appendChild(errCam)
+  }
+
+  devModal.classList.remove('gone')
+  requestAnimationFrame(() => devModal.classList.add('modal-in'))
+
+  return new Promise(resolve => {
+    const close = (result: { micId: string; camId: string } | null) => {
+      devModal.classList.remove('modal-in')
+      setTimeout(() => devModal.classList.add('gone'), 180)
+      devModalConfirm.onclick = null
+      devModalCancel.onclick = null
+      devModal.onclick = null
+      resolve(result)
+    }
+    devModalConfirm.onclick = () => close({
+      micId: devMicSel.value,
+      camId: devCamSel.value
+    })
+    devModalCancel.onclick = () => close(null)
+    devModal.onclick = (e) => { if (e.target === devModal) close(null) }
+  })
+}
+
 recbtn.onclick = async () => {
   if (tick) { clearInterval(tick); tick = null }
+
+  const devChoice = await openDevModal()
+  if (devChoice === null) return
+
   let s: MediaStream
   try { s = await startCapture() }
   catch {
@@ -170,15 +326,89 @@ recbtn.onclick = async () => {
     setTimeout(() => { timerEl.textContent = '00:00' }, 1600)
     return
   }
+
+  hadMicDuringRecording = false
+  activeMicStream = null
+
+  if (devChoice.micId) {
+    try {
+      activeMicStream = await startMic(devChoice.micId)
+      hadMicDuringRecording = true
+    } catch { activeMicStream = null }
+  }
+
+  activeCamStream = null
+  camVideoEl?.remove()
+  camVideoEl = null
+  camRecorder = null
+  camChunks = []
+  if (camBlobUrl) { URL.revokeObjectURL(camBlobUrl); camBlobUrl = null }
+  setCamVideo(null)
+  setOverlay({ visible: false })
+
+  if (devChoice.camId) {
+    try {
+      activeCamStream = await startCam(devChoice.camId)
+      camVideoEl = document.createElement('video')
+      camVideoEl.srcObject = activeCamStream
+      camVideoEl.autoplay = true
+      camVideoEl.muted = true
+      camVideoEl.playsInline = true
+      camVideoEl.style.cssText = 'position:fixed;width:1px;height:1px;top:-9999px;left:-9999px;pointer-events:none'
+      document.body.appendChild(camVideoEl)
+      await new Promise<void>(res => {
+        if (!camVideoEl) { res(); return }
+        camVideoEl.onloadedmetadata = () => res()
+        setTimeout(res, 2000)
+      })
+      await camVideoEl.play().catch(() => {})
+      setCamVideo(camVideoEl)
+      setOverlay({ visible: true })
+
+      const camMime = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(t => MediaRecorder.isTypeSupported(t)) || ''
+      if (camMime) {
+        camChunks = []
+        const camOnlyStream = new MediaStream(activeCamStream.getVideoTracks())
+        camRecorder = new MediaRecorder(camOnlyStream, { mimeType: camMime })
+        camRecorder.ondataavailable = e => { if (e.data.size > 0) camChunks.push(e.data) }
+        camRecorder.start(500)
+      }
+    } catch {
+      activeCamStream = null
+      camVideoEl?.remove()
+      camVideoEl = null
+    }
+  }
+
   app.classList.remove('idle')
   stageEmpty.classList.add('gone')
   preview.classList.remove('opacity-0')
   preview.srcObject = s
   chunks = []; zooms = []
-  loadedDuration = 0
-  recordedDuration = 0
+  loadedDuration = 0; recordedDuration = 0
   recstart = Date.now()
-  rec = new MediaRecorder(s, { mimeType: pickMime() })
+
+  const videoTracks = s.getVideoTracks()
+  const screenAudioTracks = s.getAudioTracks()
+
+  let recStream: MediaStream
+
+  if (activeMicStream && activeMicStream.getAudioTracks().length > 0) {
+    const mixCtx = new AudioContext()
+    const dest = mixCtx.createMediaStreamDestination()
+    if (screenAudioTracks.length > 0) {
+      const screenAudioStream = new MediaStream(screenAudioTracks)
+      mixCtx.createMediaStreamSource(screenAudioStream).connect(dest)
+    }
+    mixCtx.createMediaStreamSource(activeMicStream).connect(dest)
+    recStream = new MediaStream([...videoTracks, ...dest.stream.getAudioTracks()])
+    s.getVideoTracks()[0]?.addEventListener('ended', () => { mixCtx.close().catch(() => {}); stopbtn.click() }, { once: true })
+  } else {
+    recStream = new MediaStream([...videoTracks, ...screenAudioTracks])
+    s.getVideoTracks()[0]?.addEventListener('ended', () => stopbtn.click(), { once: true })
+  }
+
+  rec = new MediaRecorder(recStream, { mimeType: pickMime(), audioBitsPerSecond: 128000 })
   rec.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data) }
   rec.onstop = openEditor
   rec.start(1000)
@@ -189,13 +419,20 @@ recbtn.onclick = async () => {
     secs++
     timerEl.textContent = `${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`
   }, 1000)
-  s.getVideoTracks()[0]?.addEventListener('ended', () => stopbtn.click(), { once: true })
 }
 
 stopbtn.onclick = () => {
   recordedDuration = recstart ? (Date.now() - recstart) / 1000 : recordedDuration
+  if (camRecorder?.state === 'recording') {
+    camRecorder.stop()
+  }
+  camRecorder = null
   if (rec?.state === 'recording') rec.stop()
   stopCapture()
+  activeMicStream?.getTracks().forEach(t => t.stop())
+  activeMicStream = null
+  activeCamStream?.getTracks().forEach(t => t.stop())
+  activeCamStream = null
   if (tick) { clearInterval(tick); tick = null }
   dot.classList.remove('on'); hint.classList.remove('on')
   recbtn.disabled = false; stopbtn.disabled = true
@@ -239,27 +476,84 @@ async function loadDroppedOrPickedVideo(file: File): Promise<void> {
   stopCapture()
   chunks = [file]
   zooms = []
-  loadedDuration = 0
-  recordedDuration = 0
-  recstart = 0
+  loadedDuration = 0; recordedDuration = 0; recstart = 0
   selectedZoomIdx = null
+  hadMicDuringRecording = false
+  camChunks = []
+  if (camBlobUrl) { URL.revokeObjectURL(camBlobUrl); camBlobUrl = null }
   selectZoom(null)
   await openVideoBlob(file)
 }
 
+function syncCamPlayback(): void {
+  if (!camVideoEl || !camBlobUrl || !vid) return
+  if (vid.paused) {
+    camVideoEl.pause()
+  } else {
+    if (Math.abs(camVideoEl.currentTime - vid.currentTime) > 0.15) {
+      camVideoEl.currentTime = Math.min(vid.currentTime, camVideoEl.duration || vid.currentTime)
+    }
+    camVideoEl.play().catch(() => {})
+  }
+}
+
 function finishOpenEditor(blob: Blob, duration: number): void {
+  if (audioCtxSource) { try { audioCtxSource.disconnect() } catch {} audioCtxSource = null }
+  if (audioCtx) { audioCtx.close().catch(() => {}); audioCtx = null }
+  if (vid) { vid.pause(); vid.remove(); }
   if (vidUrl) URL.revokeObjectURL(vidUrl)
+
   loadedDuration = duration
   vid = document.createElement('video')
   vid.preload = 'auto'
   vid.muted = false
-  vid.onplay = () => { playbtn.textContent = 'Pause'; renderLoop() }
-  vid.onpause = () => { playbtn.textContent = 'Play' }
-  vid.onended = () => { playbtn.textContent = 'Play' }
+  vid.style.cssText = 'position:fixed;width:1px;height:1px;top:-9999px;left:-9999px;pointer-events:none'
+  document.body.appendChild(vid)
+  vid.onplay = () => {
+    playbtn.textContent = 'Pause'
+    syncCamPlayback()
+    renderLoop()
+  }
+  vid.onpause = () => {
+    playbtn.textContent = 'Play'
+    if (camVideoEl && camBlobUrl) camVideoEl.pause()
+    if (vid) draw(vid.currentTime)
+  }
+  vid.onended = () => {
+    playbtn.textContent = 'Play'
+    if (camVideoEl && camBlobUrl) camVideoEl.pause()
+    if (vid) draw(vid.currentTime)
+  }
   vid.ontimeupdate = onTU
   vidUrl = URL.createObjectURL(blob)
   vid.src = vidUrl
   vid.load()
+
+  if (camChunks.length > 0) {
+    if (camBlobUrl) URL.revokeObjectURL(camBlobUrl)
+    const camBlob = new Blob(camChunks, { type: 'video/webm' })
+    camBlobUrl = URL.createObjectURL(camBlob)
+    if (!camVideoEl) {
+      camVideoEl = document.createElement('video')
+      camVideoEl.style.cssText = 'position:fixed;width:1px;height:1px;top:-9999px;left:-9999px;pointer-events:none'
+      document.body.appendChild(camVideoEl)
+    }
+    camVideoEl.srcObject = null
+    camVideoEl.src = camBlobUrl
+    camVideoEl.muted = true
+    camVideoEl.preload = 'auto'
+    camVideoEl.loop = false
+    camVideoEl.load()
+    setCamVideo(camVideoEl)
+    setOverlay({ visible: true })
+    syncCamTabFromOverlay()
+  } else if (camVideoEl && activeCamStream) {
+    setCamVideo(camVideoEl)
+    syncCamTabFromOverlay()
+  } else {
+    setCamVideo(null)
+    syncCamTabFromOverlay()
+  }
 
   let initialized = false
   const tryInit = (force = false) => {
@@ -272,10 +566,12 @@ function finishOpenEditor(blob: Blob, duration: number): void {
     nativeRatio = w && vid.videoHeight ? w / vid.videoHeight : 16 / 9
     vid.playbackRate = playrate
     initEditor(output, vid)
+    if (camVideoEl) setCamVideo(camVideoEl)
     const hasAudio = (vid.mozHasAudio !== undefined ? vid.mozHasAudio :
       (vid.webkitAudioDecodedByteCount !== undefined ? vid.webkitAudioDecodedByteCount > 0 : true))
     wave.style.display = hasAudio ? '' : 'none'
     buildWave()
+    buildMicWave()
     setZooms(zooms)
     trimL = 0; trimR = 1
     syncHandles(); syncTimecode(); draw(); syncZdots()
@@ -340,14 +636,11 @@ function resolveBlobDuration(blob: Blob, fallback: number): Promise<number> {
   return new Promise(resolve => {
     const probe = document.createElement('video')
     const probeUrl = URL.createObjectURL(blob)
-    let settled = false
-    let triedSeek = false
+    let settled = false; let triedSeek = false
     const finish = (duration = 0) => {
       if (settled) return
       settled = true
-      probe.pause()
-      probe.removeAttribute('src')
-      probe.load()
+      probe.pause(); probe.removeAttribute('src'); probe.load()
       URL.revokeObjectURL(probeUrl)
       resolve(readableDuration(duration) || readableDuration(fallback))
     }
@@ -360,15 +653,11 @@ function resolveBlobDuration(blob: Blob, fallback: number): Promise<number> {
         try { probe.currentTime = 1e9 } catch { finish(fallback) }
       }
     }
-    probe.preload = 'metadata'
-    probe.muted = true
-    probe.onloadedmetadata = check
-    probe.ondurationchange = check
-    probe.ontimeupdate = check
-    probe.onseeked = check
+    probe.preload = 'metadata'; probe.muted = true
+    probe.onloadedmetadata = check; probe.ondurationchange = check
+    probe.ontimeupdate = check; probe.onseeked = check
     probe.onerror = () => finish(fallback)
-    probe.src = probeUrl
-    probe.load()
+    probe.src = probeUrl; probe.load()
     setTimeout(() => finish(fallback), 5000)
   })
 }
@@ -383,6 +672,21 @@ function buildWave(): void {
   }
 }
 
+function buildMicWave(): void {
+  if (!hadMicDuringRecording) {
+    mictrack.style.display = 'none'
+    return
+  }
+  mictrack.style.display = ''
+  micwave.innerHTML = ''
+  for (let i = 0; i < 130; i++) {
+    const d = document.createElement('div')
+    d.className = 'wb min-w-0 flex-[1_1_0] rounded-[0.5px] bg-[#222225]'
+    d.style.height = (8 + Math.random() * 55) + '%'
+    micwave.appendChild(d)
+  }
+}
+
 function safeDuration(): number {
   if (!vid) return 0
   return readableDuration(vid.duration) || loadedDuration
@@ -392,7 +696,15 @@ function onTU(): void {
   if (!vid) return
   const dur = safeDuration()
   if (dur && vid.currentTime > trimR * dur) vid.pause()
-  phead.style.left = dur ? (vid.currentTime / dur * 100) + '%' : '0%'
+  const pct = dur ? (vid.currentTime / dur * 100) + '%' : '0%'
+  phead.style.left = pct
+  if (michead) michead.style.left = pct
+  if (camVideoEl && camBlobUrl) {
+    const camDur = camVideoEl.duration
+    if (isFinite(camDur) && camDur > 0 && !vid.paused && Math.abs(camVideoEl.currentTime - vid.currentTime) > 0.2) {
+      camVideoEl.currentTime = Math.min(vid.currentTime, camDur)
+    }
+  }
   syncTimecode(); draw(vid.currentTime)
 }
 
@@ -575,10 +887,13 @@ track.addEventListener('click', e => {
   const dur = safeDuration()
   if (dur) {
     const target = p * dur
-    vid.currentTime = target
-    draw(target)
+    vid.currentTime = target; draw(target)
     phead.style.left = (p * 100) + '%'
+    if (michead) michead.style.left = (p * 100) + '%'
     syncTimecode()
+    if (camVideoEl && camBlobUrl) {
+      camVideoEl.currentTime = Math.min(target, camVideoEl.duration || target)
+    }
   }
 })
 
@@ -586,9 +901,14 @@ playbtn.onclick = () => {
   if (!vid) return
   const dur = safeDuration()
   if (vid.paused) {
-    if (dur && (vid.currentTime < trimL * dur || vid.currentTime >= trimR * dur)) vid.currentTime = trimL * dur
+    if (dur && (vid.currentTime < trimL * dur || vid.currentTime >= trimR * dur)) {
+      vid.currentTime = trimL * dur
+      if (camVideoEl && camBlobUrl) camVideoEl.currentTime = trimL * dur
+    }
     void vid.play()
-  } else vid.pause()
+  } else {
+    vid.pause()
+  }
 }
 
 addzoom.onclick = () => { if (vid) addZoomAt(lastZoomTarget.nx, lastZoomTarget.ny) }
@@ -641,52 +961,93 @@ document.querySelectorAll<HTMLElement>('.ratio-btn').forEach(btn => {
 })
 
 again.onclick = () => {
-  if (vid) { vid.pause(); vid.src = '' }
+  if (audioCtxSource) { try { audioCtxSource.disconnect() } catch {} audioCtxSource = null }
+  if (audioCtx) { audioCtx.close().catch(() => {}); audioCtx = null }
+  if (vid) { vid.pause(); vid.remove(); }
   if (vidUrl) { URL.revokeObjectURL(vidUrl); vidUrl = null }
+  if (camBlobUrl) { URL.revokeObjectURL(camBlobUrl); camBlobUrl = null }
   if (raf) cancelAnimationFrame(raf)
-  vid = null; chunks = []; zooms = []
+  vid = null; chunks = []; zooms = []; camChunks = []
   loadedDuration = 0; recordedDuration = 0
   selectedZoomIdx = null
+  hadMicDuringRecording = false
+  activeCamStream?.getTracks().forEach(t => t.stop())
+  activeCamStream = null
+  camVideoEl?.remove()
+  camVideoEl = null
   selectZoom(null); hideLoadOverlay()
   tline.classList.add('gone'); editor.classList.add('gone'); stage.classList.remove('gone')
   stageEmpty.classList.remove('gone')
   app.classList.add('idle')
   preview.classList.add('opacity-0')
+  setCamVideo(null)
+  setOverlay({ visible: false })
+  mictrack.style.display = 'none'
   initEditor(output, preview)
   timerEl.textContent = '00:00'
 }
 
 dlwebm.onclick = async () => {
-  dlwebm.disabled = true
-  progtxt.textContent = 'rendering...'; progtxt.classList.remove('gone')
-  try { dlWebm(await renderEditedBlob()) }
-  finally { progtxt.classList.add('gone'); dlwebm.disabled = false }
+  showExportModal()
+  updateExportProgress(5, 'Rendering frames...')
+  let blob: Blob
+  try {
+    blob = await renderEditedBlob((p, phase) => updateExportProgress(5 + p * 0.9, phase || 'Rendering...'))
+  } catch {
+    hideExportModal()
+    return
+  }
+  updateExportProgress(100, 'Done')
+  triggerDownload(blob, `glare-export-${Date.now()}.webm`)
+  showExportDone(blob, 'webm')
 }
 
 dlmp4.onclick = async () => {
-  dlmp4.disabled = true; prog.classList.remove('gone'); progtxt.classList.remove('gone')
+  showExportModal()
+  updateExportProgress(2, 'Rendering frames...')
+  let edited: Blob
   try {
-    progtxt.textContent = 'rendering edit...'
-    const edited = await renderEditedBlob()
-    progtxt.textContent = 'encoding mp4...'
-    await toMp4(edited, getMp4Options(), p => { progbar.style.width = p + '%' }, msg => { progtxt.textContent = msg.slice(0, 40) })
-  } finally {
-    prog.classList.add('gone'); progtxt.classList.add('gone')
-    progbar.style.width = '0%'; dlmp4.disabled = false
+    edited = await renderEditedBlob((p, phase) => updateExportProgress(2 + p * 0.45, phase || 'Rendering...'))
+  } catch {
+    hideExportModal()
+    return
   }
+  updateExportProgress(50, 'Encoding MP4...')
+  try {
+    await toMp4(edited, getMp4Options(),
+      p => updateExportProgress(50 + p * 0.5, 'Encoding MP4...'),
+      msg => updateExportProgress(exportModalBar.style.width ? parseFloat(exportModalBar.style.width) : 50, msg.slice(0, 40))
+    )
+  } catch {
+    hideExportModal()
+    return
+  }
+  updateExportProgress(100, 'Done')
+  showExportDone(edited, 'mp4')
 }
 
 dlgif.onclick = async () => {
-  dlgif.disabled = true; prog.classList.remove('gone'); progtxt.classList.remove('gone')
+  showExportModal()
+  updateExportProgress(2, 'Rendering frames...')
+  let edited: Blob
   try {
-    progtxt.textContent = 'rendering edit...'
-    const edited = await renderEditedBlob()
-    progtxt.textContent = 'encoding gif...'
-    await toGif(edited, p => { progbar.style.width = p + '%' }, msg => { progtxt.textContent = msg.slice(0, 40) })
-  } finally {
-    prog.classList.add('gone'); progtxt.classList.add('gone')
-    progbar.style.width = '0%'; dlgif.disabled = trimmedDuration() > 30
+    edited = await renderEditedBlob((p, phase) => updateExportProgress(2 + p * 0.45, phase || 'Rendering...'))
+  } catch {
+    hideExportModal()
+    return
   }
+  updateExportProgress(50, 'Encoding GIF...')
+  try {
+    await toGif(edited,
+      p => updateExportProgress(50 + p * 0.5, 'Encoding GIF...'),
+      msg => updateExportProgress(exportModalBar.style.width ? parseFloat(exportModalBar.style.width) : 50, msg.slice(0, 40))
+    )
+  } catch {
+    hideExportModal()
+    return
+  }
+  updateExportProgress(100, 'Done')
+  showExportDone(edited, 'gif')
 }
 
 fpsinput.oninput = () => {
@@ -720,11 +1081,7 @@ dlpng.onclick = async () => {
   try {
     const blob = await new Promise<Blob | null>(resolve => output.toBlob(resolve, 'image/png'))
     if (!blob) return
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = `glare-frame-${Date.now()}.png`
-    a.click()
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+    triggerDownload(blob, `glare-frame-${Date.now()}.png`)
   } finally {
     dlpng.disabled = false
   }
@@ -741,44 +1098,62 @@ function renderLoop(): void {
   raf = requestAnimationFrame(renderLoop)
 }
 
-async function renderEditedBlob(): Promise<Blob> {
+async function renderEditedBlob(onProgress?: (pct: number, phase?: string) => void): Promise<Blob> {
   if (!vid) return new Blob(chunks, { type: 'video/webm' })
   const wasPaused = vid.paused
   const before = vid.currentTime
   const beforeRate = vid.playbackRate
   const dur = safeDuration()
-  const baseW = output.width
-  const baseH = output.height
+  const baseW = output.width; const baseH = output.height
   if (exportScale < 1) {
     output.width = Math.max(2, Math.round(baseW * exportScale))
     output.height = Math.max(2, Math.round(baseH * exportScale))
   }
   vid.playbackRate = 1
+
+  if (!audioCtx) {
+    audioCtx = new AudioContext()
+  } else if (audioCtx.state === 'suspended') {
+    await audioCtx.resume()
+  }
+
   const stream = output.captureStream(exportFps)
+
+  if (!audioCtxSource) {
+    audioCtxSource = audioCtx.createMediaElementSource(vid)
+    audioCtxSource.connect(audioCtx.destination)
+  }
+  const dest = audioCtx.createMediaStreamDestination()
+  audioCtxSource.connect(dest)
+  dest.stream.getAudioTracks().forEach(t => stream.addTrack(t))
+
   const recorder = new MediaRecorder(stream, { mimeType: pickMime(), videoBitsPerSecond: getVideoBitsPerSecond() })
   const rendered: Blob[] = []
   recorder.ondataavailable = e => { if (e.data.size > 0) rendered.push(e.data) }
-  await seekTo(trimL * dur)
-  draw(vid.currentTime)
+  await seekTo(trimL * dur); draw(vid.currentTime)
   const stopped = new Promise<Blob>(resolve => { recorder.onstop = () => resolve(new Blob(rendered, { type: 'video/webm' })) })
   recorder.start(250); await vid.play()
+  const trimStart = trimL * dur
+  const trimEnd = trimR * dur
+  const trimDur = trimEnd - trimStart
   await new Promise<void>(resolve => {
     const step = () => {
-      if (!vid || vid.currentTime >= trimR * dur || vid.ended) { recorder.stop(); resolve(); return }
+      if (!vid || vid.currentTime >= trimEnd || vid.ended) { recorder.stop(); resolve(); return }
+      const elapsed = vid.currentTime - trimStart
+      const pct = trimDur > 0 ? Math.min(100, (elapsed / trimDur) * 100) : 0
+      onProgress?.(pct, 'Rendering frames...')
       draw(vid.currentTime); requestAnimationFrame(step)
     }
     step()
   })
   const blob = await stopped
-  stream.getTracks().forEach(track => track.stop())
-  vid.pause()
-  vid.playbackRate = beforeRate
+  audioCtxSource.disconnect(dest)
+  stream.getTracks().forEach(t => t.stop())
+  vid.pause(); vid.playbackRate = beforeRate
   if (output.width !== baseW || output.height !== baseH) {
-    output.width = baseW
-    output.height = baseH
+    output.width = baseW; output.height = baseH
   }
-  await seekTo(before)
-  draw(vid.currentTime)
+  await seekTo(before); draw(vid.currentTime)
   if (!wasPaused) void vid.play()
   return blob
 }
@@ -787,21 +1162,15 @@ function addZoomAt(nx: number, ny: number): void {
   if (!vid) return
   lastZoomTarget = { nx, ny }
   const newZoom: Zoom = { t: vid.currentTime, nx, ny, dur: defaultDur, zoomlvl: 2.6 }
-  zooms.push(newZoom)
-  zooms.sort((a, b) => a.t - b.t)
+  zooms.push(newZoom); zooms.sort((a, b) => a.t - b.t)
   const newIdx = zooms.indexOf(newZoom)
-  setZooms(zooms)
-  syncZdots()
-  selectZoom(newIdx)
-  switchTab('zoom')
+  setZooms(zooms); syncZdots(); selectZoom(newIdx); switchTab('zoom')
   draw(vid.currentTime)
 }
 
 function clearAllZooms(): void {
   zooms = []
-  setZooms(zooms)
-  selectZoom(null)
-  syncZdots()
+  setZooms(zooms); selectZoom(null); syncZdots()
   if (vid) draw(vid.currentTime)
 }
 
@@ -828,12 +1197,66 @@ function seekTo(time: number): Promise<void> {
     if (Math.abs(vid.currentTime - time) < .01) { onTU(); resolve(); return }
     vid.onseeked = () => {
       if (!vid) return
-      vid.onseeked = null
-      onTU()
-      resolve()
+      vid.onseeked = null; onTU(); resolve()
     }
     vid.currentTime = time
   })
+}
+
+function syncCamTabFromOverlay(): void {
+  const ov = getOverlay()
+  camToggleInput.checked = ov.visible
+  camSizeInput.value = String(ov.size)
+  camSizeVal.textContent = ov.size + '%'
+  camRadInput.value = String(ov.rad)
+  camRadVal.textContent = ov.rad + '%'
+  camPadInput.value = String(ov.pad)
+  camPadVal.textContent = String(ov.pad)
+  camCornerBtns.forEach(b => b.classList.toggle('active', b.dataset.corner === ov.corner))
+  if (camVideoEl && activeCamStream) {
+    camPreviewVid.srcObject = activeCamStream
+    camPreviewVid.play().catch(() => {})
+    camPreviewWrap.classList.remove('gone')
+    camNoSignal.classList.add('gone')
+  } else if (camVideoEl && camBlobUrl) {
+    camPreviewVid.srcObject = null
+    camPreviewVid.src = camBlobUrl
+    camPreviewVid.muted = true
+    camPreviewVid.play().catch(() => {})
+    camPreviewWrap.classList.remove('gone')
+    camNoSignal.classList.add('gone')
+  } else {
+    camPreviewWrap.classList.add('gone')
+    camNoSignal.classList.remove('gone')
+  }
+}
+
+camToggleInput.onchange = () => { setOverlay({ visible: camToggleInput.checked }) }
+
+camCornerBtns.forEach(btn => {
+  btn.onclick = () => {
+    camCornerBtns.forEach(b => b.classList.remove('active'))
+    btn.classList.add('active')
+    setOverlay({ corner: btn.dataset.corner as 'bl' | 'br' | 'tl' | 'tr' })
+  }
+})
+
+camSizeInput.oninput = () => {
+  const v = Number(camSizeInput.value)
+  camSizeVal.textContent = v + '%'
+  setOverlay({ size: v })
+}
+
+camRadInput.oninput = () => {
+  const v = Number(camRadInput.value)
+  camRadVal.textContent = v + '%'
+  setOverlay({ rad: v })
+}
+
+camPadInput.oninput = () => {
+  const v = Number(camPadInput.value)
+  camPadVal.textContent = String(v)
+  setOverlay({ pad: v })
 }
 
 declare global {

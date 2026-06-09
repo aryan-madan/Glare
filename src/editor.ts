@@ -6,11 +6,20 @@ export interface Zoom {
   zoomlvl?: number
 }
 
+export interface CamOverlay {
+  corner: 'bl' | 'br' | 'tl' | 'tr'
+  size: number
+  rad: number
+  pad: number
+  visible: boolean
+}
+
 interface Camera { scale: number; nx: number; ny: number }
 
 let cv: HTMLCanvasElement
 let ctx: CanvasRenderingContext2D
 let src: HTMLVideoElement
+let camVid: HTMLVideoElement | null = null
 let col1 = '#f8f8f6'
 let col2 = '#eceae5'
 let ang = 135
@@ -28,27 +37,28 @@ let ratio = 16 / 9
 let zooms: Zoom[] = []
 const shutter = 1 / 35
 
+let overlay: CamOverlay = { corner: 'br', size: 22, rad: 50, pad: 28, visible: false }
+
 export function initEditor(c: HTMLCanvasElement, s: HTMLVideoElement): void {
   cv = c; ctx = c.getContext('2d')!; src = s; updateSize()
 }
+
+export function setCamVideo(v: HTMLVideoElement | null): void { camVid = v }
+export function setOverlay(o: Partial<CamOverlay>): void { overlay = { ...overlay, ...o }; draw() }
+export function getOverlay(): CamOverlay { return { ...overlay } }
 
 function updateSize(): void {
   const dpr = window.devicePixelRatio || 1
   const container = cv.parentElement!
   const cw = container.clientWidth - 48
   const ch = container.clientHeight - 48
-
   let cssW: number
   let cssH: number
-
   if (cw / ch > ratio) {
-    cssH = ch
-    cssW = ch * ratio
+    cssH = ch; cssW = ch * ratio
   } else {
-    cssW = cw
-    cssH = cw / ratio
+    cssW = cw; cssH = cw / ratio
   }
-
   cv.style.width = cssW + 'px'
   cv.style.height = cssH + 'px'
   cv.width = Math.round(cssW * dpr)
@@ -69,17 +79,13 @@ export function setGrain(n: number): void { grain = n; draw() }
 export function setMotion(n: number): void { motion = n; draw() }
 export function setRatio(r: number | 'original'): void {
   if (r === 'original') {
-    ratio = src.videoWidth && src.videoHeight
-      ? src.videoWidth / src.videoHeight
-      : 16 / 9
+    ratio = src.videoWidth && src.videoHeight ? src.videoWidth / src.videoHeight : 16 / 9
   } else {
     ratio = r
   }
-  updateSize()
-  draw()
+  updateSize(); draw()
 }
 export function setZooms(next: Zoom[]): void { zooms = next }
-
 export function handleResize(): void { updateSize(); draw() }
 
 export function draw(time = src?.currentTime || 0): void {
@@ -88,8 +94,8 @@ export function draw(time = src?.currentTime || 0): void {
   ctx.clearRect(0, 0, W, H)
 
   const camera = getCamera(time)
-
-  const scale = inset / 100
+  const zoomShrink = camera.scale > 1 ? 1 / camera.scale : 1
+  const scale = (inset / 100) * (0.72 + zoomShrink * 0.28)
   const iw = Math.max(80, (W - pad * 2) * scale)
   const ih = Math.max(80, (H - pad * 2) * scale)
   const ix = (W - iw) / 2
@@ -171,6 +177,52 @@ export function draw(time = src?.currentTime || 0): void {
     }
     ctx.restore()
   }
+
+  if (overlay.visible && camVid && camVid.readyState >= 2) {
+    drawCamOverlay(W, H, camera)
+  }
+}
+
+function drawCamOverlay(W: number, H: number, camera: Camera): void {
+  if (!camVid) return
+  const camScale = camera.scale > 1 ? camera.scale : 1
+  const sizeRatio = (overlay.size / 100) * camScale
+  const camW = Math.round(W * sizeRatio)
+  const camAR = camVid.videoWidth && camVid.videoHeight ? camVid.videoWidth / camVid.videoHeight : 4 / 3
+  const camH = Math.round(camW / camAR)
+  const p = overlay.pad * camScale
+  let cx: number
+  let cy: number
+  if (overlay.corner === 'bl') { cx = p; cy = H - p - camH }
+  else if (overlay.corner === 'br') { cx = W - p - camW; cy = H - p - camH }
+  else if (overlay.corner === 'tl') { cx = p; cy = p }
+  else { cx = W - p - camW; cy = p }
+
+  const r = Math.min((overlay.rad / 100) * Math.min(camW, camH) / 2, camW / 2, camH / 2)
+
+  ctx.save()
+  ctx.shadowColor = 'rgba(0,0,0,0.55)'
+  ctx.shadowBlur = 22
+  ctx.shadowOffsetY = 5
+  rrect(cx, cy, camW, camH, r)
+  ctx.fillStyle = '#000'
+  ctx.fill()
+  ctx.restore()
+
+  ctx.save()
+  rrect(cx, cy, camW, camH, r)
+  ctx.clip()
+  ctx.translate(cx + camW, cy)
+  ctx.scale(-1, 1)
+  ctx.drawImage(camVid, 0, 0, camW, camH)
+  ctx.restore()
+
+  ctx.save()
+  rrect(cx + .5, cy + .5, camW - 1, camH - 1, r)
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)'
+  ctx.lineWidth = 1.5
+  ctx.stroke()
+  ctx.restore()
 }
 
 function applyCameraTransform(camera: Camera, W: number, H: number): void {
@@ -190,7 +242,6 @@ function getMotionFrames(time: number, W: number, H: number): { camera: Camera; 
   const move = Math.hypot((next.nx - prev.nx) * W, (next.ny - prev.ny) * H)
   const zoom = Math.abs(next.scale - prev.scale) * Math.max(W, H)
   if (move + zoom < 2) return [{ camera: current, alpha: 1 }]
-
   const count = Math.round(3 + motion / 14)
   const alpha = motion / 100 * .18
   const span = shutter * (.35 + motion / 100 * .9)
@@ -206,17 +257,13 @@ function getMotionFrames(time: number, W: number, H: number): { camera: Camera; 
 function getCamera(time: number): Camera {
   const active = [...zooms].reverse().find(z => time >= z.t - .06 && time <= z.t + z.dur)
   if (!active) return { scale: 1, nx: .5, ny: .5 }
-
   const effectiveZoom = active.zoomlvl ?? zoomlvl
-
   const total = active.dur
   const zoomIn = Math.min(0.5, total * 0.22)
   const zoomOut = Math.min(0.6, total * 0.28)
   const hold = total - zoomIn - zoomOut
-
   const local = Math.max(0, time - active.t)
   if (local >= total) return { scale: 1, nx: .5, ny: .5 }
-
   let t = 0
   if (local < zoomIn) {
     t = easeInOut(local / zoomIn)
@@ -225,7 +272,6 @@ function getCamera(time: number): Camera {
   } else {
     t = 1 - easeInOut((local - zoomIn - hold) / zoomOut)
   }
-
   return {
     scale: lerp(1, effectiveZoom, t),
     nx: lerp(.5, active.nx, t),
@@ -249,9 +295,7 @@ function rrect(x: number, y: number, w: number, h: number, r: number): void {
 
 function easeInOut(t: number): number {
   const x = clamp(t, 0, 1)
-  return x < .5
-    ? 2 * x * x
-    : 1 - Math.pow(-2 * x + 2, 2) / 2
+  return x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2
 }
 
 function lerp(a: number, b: number, t: number): number { return a + (b - a) * t }
