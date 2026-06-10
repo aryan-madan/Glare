@@ -4,6 +4,7 @@ export interface Zoom {
   ny: number
   dur: number
   zoomlvl?: number
+  camZoomScale?: number
 }
 
 export interface CamOverlay {
@@ -179,18 +180,39 @@ export function draw(time = src?.currentTime || 0): void {
   }
 
   if (overlay.visible && camVid && camVid.readyState >= 2) {
-    drawCamOverlay(W, H, camera)
+    drawCamOverlay(W, H, camera, getZoomProgress(time))
   }
 }
 
-function drawCamOverlay(W: number, H: number, camera: Camera): void {
+function getZoomProgress(time: number): { t: number; camZoomScale: number } {
+  const active = [...zooms].reverse().find(z => time >= z.t - .06 && time <= z.t + z.dur)
+  if (!active) return { t: 0, camZoomScale: 1 }
+  const total = active.dur
+  const zoomIn = Math.min(0.5, total * 0.22)
+  const zoomOut = Math.min(0.6, total * 0.28)
+  const hold = total - zoomIn - zoomOut
+  const local = Math.max(0, time - active.t)
+  if (local >= total) return { t: 0, camZoomScale: active.camZoomScale ?? 1 }
+  let t = 0
+  if (local < zoomIn) {
+    t = easeInOut(local / zoomIn)
+  } else if (local < zoomIn + hold) {
+    t = 1
+  } else {
+    t = 1 - easeInOut((local - zoomIn - hold) / zoomOut)
+  }
+  return { t, camZoomScale: active.camZoomScale ?? 1 }
+}
+
+function drawCamOverlay(W: number, H: number, camera: Camera, zoomProgress: { t: number; camZoomScale: number }): void {
   if (!camVid) return
-  const camScale = camera.scale > 1 ? camera.scale : 1
-  const sizeRatio = (overlay.size / 100) * camScale
+  const { t: zt, camZoomScale } = zoomProgress
+  const effectiveCamScale = lerp(1, camZoomScale, zt)
+  const sizeRatio = (overlay.size / 100) * effectiveCamScale
   const camW = Math.round(W * sizeRatio)
   const camAR = camVid.videoWidth && camVid.videoHeight ? camVid.videoWidth / camVid.videoHeight : 4 / 3
   const camH = Math.round(camW / camAR)
-  const p = overlay.pad * camScale
+  const p = overlay.pad * effectiveCamScale
   let cx: number
   let cy: number
   if (overlay.corner === 'bl') { cx = p; cy = H - p - camH }

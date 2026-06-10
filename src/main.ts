@@ -2,7 +2,7 @@ import './main.css'
 import { startCapture, startMic, startCam, stopCapture, enumerateDevices } from './capture'
 import { initEditor, setBgCol, setBgAng, setRad, setPad, setShad, setShadop, setInset, setStrokeop, setVignette, setGrain, setMotion, setRatio, setZooms, draw, setCamVideo, setOverlay, getOverlay } from './editor'
 import type { Zoom } from './editor'
-import { toMp4, toGif } from './export'
+import { dlWebm, toMp4, toGif } from './export'
 import type { Mp4Options } from './export'
 import { createIcons, Image, Frame, ZoomIn, Download, ArrowRight, RotateCcw, Video } from 'lucide'
 createIcons({ icons: { Image, Frame, ZoomIn, Download, ArrowRight, RotateCcw, Video } })
@@ -43,9 +43,9 @@ const wave = document.getElementById('wave') as HTMLDivElement
 const micwave = document.getElementById('micwave') as HTMLDivElement
 const mictrack = document.getElementById('mictrack') as HTMLDivElement
 const michead = document.getElementById('michead') as HTMLDivElement
-/* const prog = document.getElementById('prog') as HTMLDivElement
+const prog = document.getElementById('prog') as HTMLDivElement
 const progbar = document.getElementById('progbar') as HTMLDivElement
-const progtxt = document.getElementById('progtxt') as HTMLSpanElement */
+const progtxt = document.getElementById('progtxt') as HTMLSpanElement
 
 const bgcol1 = document.getElementById('bgcol1') as HTMLInputElement
 const bgcol2 = document.getElementById('bgcol2') as HTMLInputElement
@@ -79,6 +79,8 @@ const ziLvl = document.getElementById('zi-lvl') as HTMLInputElement
 const ziLvlVal = document.getElementById('zi-lvlval') as HTMLSpanElement
 const ziDur = document.getElementById('zi-dur') as HTMLInputElement
 const ziDurVal = document.getElementById('zi-durval') as HTMLSpanElement
+const ziCamScale = document.getElementById('zi-camscale') as HTMLInputElement
+const ziCamScaleVal = document.getElementById('zi-camscaleval') as HTMLSpanElement
 const ziDel = document.getElementById('zi-del') as HTMLButtonElement
 const ziAddEmpty = document.getElementById('zi-add-empty') as HTMLButtonElement
 const zcountEmpty = document.getElementById('zcount-empty') as HTMLSpanElement
@@ -254,6 +256,21 @@ async function openDevModal(): Promise<{ micId: string; camId: string } | null> 
   devMicSel.innerHTML = ''
   devCamSel.innerHTML = ''
 
+  const devMicToggle = document.getElementById('dev-mic-toggle') as HTMLInputElement
+  const devCamToggle = document.getElementById('dev-cam-toggle') as HTMLInputElement
+  const devMicRow = document.getElementById('dev-mic-row') as HTMLDivElement
+  const devCamRow = document.getElementById('dev-cam-row') as HTMLDivElement
+
+  const syncRows = () => {
+    devMicSel.style.opacity = devMicToggle.checked ? '1' : '0.3'
+    devMicSel.style.pointerEvents = devMicToggle.checked ? '' : 'none'
+    devCamSel.style.opacity = devCamToggle.checked ? '1' : '0.3'
+    devCamSel.style.pointerEvents = devCamToggle.checked ? '' : 'none'
+  }
+
+  devMicToggle.onchange = syncRows
+  devCamToggle.onchange = syncRows
+
   try {
     const { mics, cams } = await enumerateDevices()
 
@@ -291,6 +308,7 @@ async function openDevModal(): Promise<{ micId: string; camId: string } | null> 
     devCamSel.appendChild(errCam)
   }
 
+  syncRows()
   devModal.classList.remove('gone')
   requestAnimationFrame(() => devModal.classList.add('modal-in'))
 
@@ -301,11 +319,13 @@ async function openDevModal(): Promise<{ micId: string; camId: string } | null> 
       devModalConfirm.onclick = null
       devModalCancel.onclick = null
       devModal.onclick = null
+      devMicToggle.onchange = null
+      devCamToggle.onchange = null
       resolve(result)
     }
     devModalConfirm.onclick = () => close({
-      micId: devMicSel.value,
-      camId: devCamSel.value
+      micId: devMicToggle.checked ? devMicSel.value : '',
+      camId: devCamToggle.checked ? devCamSel.value : ''
     })
     devModalCancel.onclick = () => close(null)
     devModal.onclick = (e) => { if (e.target === devModal) close(null) }
@@ -330,12 +350,9 @@ recbtn.onclick = async () => {
   hadMicDuringRecording = false
   activeMicStream = null
 
-  if (devChoice.micId) {
-    try {
-      activeMicStream = await startMic(devChoice.micId)
-      hadMicDuringRecording = true
-    } catch { activeMicStream = null }
-  }
+  const micPromise = devChoice.micId
+    ? startMic(devChoice.micId).then(m => { activeMicStream = m; hadMicDuringRecording = true }).catch(() => {})
+    : Promise.resolve()
 
   activeCamStream = null
   camVideoEl?.remove()
@@ -346,7 +363,7 @@ recbtn.onclick = async () => {
   setCamVideo(null)
   setOverlay({ visible: false })
 
-  if (devChoice.camId) {
+  const camSetupPromise = devChoice.camId ? (async () => {
     try {
       activeCamStream = await startCam(devChoice.camId)
       camVideoEl = document.createElement('video')
@@ -364,7 +381,6 @@ recbtn.onclick = async () => {
       await camVideoEl.play().catch(() => {})
       setCamVideo(camVideoEl)
       setOverlay({ visible: true })
-
       const camMime = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(t => MediaRecorder.isTypeSupported(t)) || ''
       if (camMime) {
         camChunks = []
@@ -378,7 +394,9 @@ recbtn.onclick = async () => {
       camVideoEl?.remove()
       camVideoEl = null
     }
-  }
+  })() : Promise.resolve()
+
+  await Promise.all([micPromise, camSetupPromise])
 
   app.classList.remove('idle')
   stageEmpty.classList.add('gone')
@@ -570,8 +588,8 @@ function finishOpenEditor(blob: Blob, duration: number): void {
     const hasAudio = (vid.mozHasAudio !== undefined ? vid.mozHasAudio :
       (vid.webkitAudioDecodedByteCount !== undefined ? vid.webkitAudioDecodedByteCount > 0 : true))
     wave.style.display = hasAudio ? '' : 'none'
-    buildWave()
-    buildMicWave()
+    void buildWave()
+    void buildMicWave()
     setZooms(zooms)
     trimL = 0; trimR = 1
     syncHandles(); syncTimecode(); draw(); syncZdots()
@@ -662,29 +680,62 @@ function resolveBlobDuration(blob: Blob, fallback: number): Promise<number> {
   })
 }
 
-function buildWave(): void {
-  wave.innerHTML = ''
-  for (let i = 0; i < 130; i++) {
-    const d = document.createElement('div')
-    d.className = 'wb min-w-0 flex-[1_1_0] rounded-[0.5px] bg-[#222225]'
-    d.style.height = (12 + Math.random() * 64) + '%'
-    wave.appendChild(d)
+async function decodeAmplitudes(blob: Blob, bars: number): Promise<number[]> {
+  try {
+    const arrayBuf = await blob.arrayBuffer()
+    const ac = new OfflineAudioContext(1, 1, 44100)
+    const decoded = await ac.decodeAudioData(arrayBuf)
+    const raw = decoded.getChannelData(0)
+    const step = Math.floor(raw.length / bars)
+    const amps: number[] = []
+    for (let i = 0; i < bars; i++) {
+      let peak = 0
+      const start = i * step
+      const end = Math.min(start + step, raw.length)
+      for (let j = start; j < end; j++) {
+        const abs = Math.abs(raw[j])
+        if (abs > peak) peak = abs
+      }
+      amps.push(peak)
+    }
+    const max = Math.max(...amps, 0.001)
+    return amps.map(a => a / max)
+  } catch {
+    return Array.from({ length: bars }, () => Math.random())
   }
 }
 
-function buildMicWave(): void {
+function renderBars(container: HTMLElement, amps: number[], minH = 8, maxH = 88): void {
+  container.innerHTML = ''
+  amps.forEach(amp => {
+    const d = document.createElement('div')
+    d.className = 'wb min-w-0 flex-[1_1_0] rounded-[0.5px] bg-[#222225]'
+    d.style.height = (minH + amp * (maxH - minH)) + '%'
+    container.appendChild(d)
+  })
+}
+
+async function buildWave(): Promise<void> {
+  const BAR_COUNT = 130
+  renderBars(wave, Array(BAR_COUNT).fill(0.3))
+  if (!chunks.length) return
+  const blob = new Blob(chunks, { type: chunks[0] instanceof File ? (chunks[0] as File).type : 'video/webm' })
+  const amps = await decodeAmplitudes(blob, BAR_COUNT)
+  renderBars(wave, amps, 8, 88)
+}
+
+async function buildMicWave(): Promise<void> {
   if (!hadMicDuringRecording) {
     mictrack.style.display = 'none'
     return
   }
   mictrack.style.display = ''
-  micwave.innerHTML = ''
-  for (let i = 0; i < 130; i++) {
-    const d = document.createElement('div')
-    d.className = 'wb min-w-0 flex-[1_1_0] rounded-[0.5px] bg-[#222225]'
-    d.style.height = (8 + Math.random() * 55) + '%'
-    micwave.appendChild(d)
-  }
+  const BAR_COUNT = 130
+  renderBars(micwave, Array(BAR_COUNT).fill(0.25))
+  if (!chunks.length) return
+  const blob = new Blob(chunks, { type: 'video/webm' })
+  const amps = await decodeAmplitudes(blob, BAR_COUNT)
+  renderBars(micwave, amps, 6, 72)
 }
 
 function safeDuration(): number {
@@ -739,6 +790,9 @@ function selectZoom(idx: number | null): void {
   const lvl = z.zoomlvl ?? 2.6
   ziLvl.value = String(lvl)
   ziLvlVal.textContent = lvl.toFixed(1) + '×'
+  const cs = z.camZoomScale ?? 1
+  ziCamScale.value = String(cs)
+  ziCamScaleVal.textContent = cs.toFixed(2) + '×'
 }
 
 function deleteSelectedZoom(): void {
@@ -769,15 +823,49 @@ ziLvl.oninput = () => {
   if (vid) draw(vid.currentTime)
 }
 
+ziCamScale.oninput = () => {
+  if (selectedZoomIdx === null) return
+  const val = Number(ziCamScale.value)
+  zooms[selectedZoomIdx] = { ...zooms[selectedZoomIdx], camZoomScale: val }
+  ziCamScaleVal.textContent = val.toFixed(2) + '×'
+  setZooms(zooms)
+  if (vid) draw(vid.currentTime)
+}
+
 ziDel.onclick = deleteSelectedZoom
 
 document.addEventListener('keydown', e => {
-  if (selectedZoomIdx === null) return
   const target = e.target as HTMLElement | null
   if (target?.matches('input, textarea, select') || target?.isContentEditable) return
-  if (e.key !== 'Backspace' && e.key !== 'Delete') return
-  e.preventDefault()
-  deleteSelectedZoom()
+
+  if (e.key === ' ' || e.code === 'Space') {
+    e.preventDefault()
+    if (vid) playbtn.click()
+    return
+  }
+
+  if ((e.key === 'z' || e.key === 'Z') && !e.metaKey && !e.ctrlKey) {
+    e.preventDefault()
+    if (vid) addZoomAt(lastZoomTarget.nx, lastZoomTarget.ny)
+    return
+  }
+
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    e.preventDefault()
+    if (!vid) return
+    const step = e.shiftKey ? 1 : 1 / 30
+    const dur = safeDuration()
+    const next = Math.max(trimL * dur, Math.min(trimR * dur, vid.currentTime + (e.key === 'ArrowLeft' ? -step : step)))
+    vid.currentTime = next
+    draw(next)
+    syncTimecode()
+    return
+  }
+
+  if ((e.key === 'Backspace' || e.key === 'Delete') && selectedZoomIdx !== null) {
+    e.preventDefault()
+    deleteSelectedZoom()
+  }
 })
 
 function syncZdots(): void {
@@ -854,6 +942,38 @@ function syncZdots(): void {
       if ((e.target as HTMLElement).closest('.zdot-resize')) return
       selectZoom(selectedZoomIdx === idx ? null : idx)
       syncZdots()
+    })
+
+    pill.addEventListener('mousedown', e => {
+      if ((e.target as HTMLElement).closest('.zdot-resize')) return
+      e.stopPropagation(); e.preventDefault()
+      selectZoom(idx); syncZdots()
+      const trackRect = track.getBoundingClientRect()
+      const origT = z.t
+      const startX = e.clientX
+      let moved = false
+      const onMove = (ev: MouseEvent) => {
+        if (!vid) return
+        const d = safeDuration(); if (!d) return
+        const delta = (ev.clientX - startX) / (trackRect.width / d)
+        if (Math.abs(ev.clientX - startX) > 3) moved = true
+        zooms[idx] = { ...zooms[idx], t: Math.max(0, Math.min(d - zooms[idx].dur, origT + delta)) }
+        setZooms(zooms); syncZdots(); draw(vid.currentTime)
+        if (selectedZoomIdx === idx) selectZoom(idx)
+      }
+      const onUp = () => {
+        if (moved) {
+          const active = zooms[idx]
+          zooms.sort((a, b) => a.t - b.t)
+          const newIdx = zooms.indexOf(active)
+          selectedZoomIdx = newIdx
+          setZooms(zooms); syncZdots(); selectZoom(newIdx)
+        }
+        document.removeEventListener('mousemove', onMove)
+        document.removeEventListener('mouseup', onUp)
+      }
+      document.addEventListener('mousemove', onMove)
+      document.addEventListener('mouseup', onUp)
     })
 
     pill.appendChild(tooltip)
@@ -1065,14 +1185,14 @@ scaleinput.oninput = () => {
 
 function getMp4Options(): Mp4Options {
   return [
-    { crf: 28, preset: 'veryfast' },
-    { crf: 22, preset: 'fast' },
-    { crf: 18, preset: 'slow' }
+    { crf: 28, preset: 'veryfast', fps: exportFps },
+    { crf: 20, preset: 'fast',     fps: exportFps },
+    { crf: 16, preset: 'medium',   fps: exportFps }
   ][exportQuality] as Mp4Options
 }
 
 function getVideoBitsPerSecond(): number {
-  return [3_500_000, 8_000_000, 16_000_000][exportQuality] || 8_000_000
+  return [6_000_000, 12_000_000, 20_000_000][exportQuality] || 12_000_000
 }
 
 dlpng.onclick = async () => {

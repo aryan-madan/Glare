@@ -5,6 +5,7 @@ let ffmpeg: FFmpeg | null = null
 
 export interface Mp4Options {
   crf: number
+  fps: number
   preset:
   | 'ultrafast'
   | 'superfast'
@@ -84,22 +85,19 @@ export async function toMp4(
 
   await ff.exec([
     '-y',
-    '-i',
-    'input.webm',
-    '-c:v',
-    'libx264',
-    '-crf',
-    String(options.crf),
-    '-preset',
-    options.preset,
-    '-c:a',
-    'aac',
-    '-b:a',
-    '192k',
-    '-pix_fmt',
-    'yuv420p',
-    '-movflags',
-    '+faststart',
+    '-fflags', '+genpts',
+    '-i', 'input.webm',
+    '-c:v', 'libx264',
+    '-crf', String(options.crf),
+    '-preset', options.preset,
+    '-r', String(options.fps),
+    '-vsync', 'cfr',
+    '-c:a', 'aac',
+    '-b:a', '192k',
+    '-ac', '2',
+    '-pix_fmt', 'yuv420p',
+    '-movflags', '+faststart',
+    '-tune', 'animation',
     'output.mp4',
   ])
 
@@ -112,9 +110,7 @@ export async function toMp4(
   const out = new Uint8Array(data)
 
   download(
-    new Blob([out], {
-      type: 'video/mp4',
-    }),
+    new Blob([out], { type: 'video/mp4' }),
     'glare.mp4'
   )
 }
