@@ -238,31 +238,90 @@
             </div>
           </div>
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
-            <div class="sp-label mb-2 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Custom gradient</div>
-            <div class="color-row flex items-center gap-1.5">
-              <div class="color-slot flex flex-1 flex-col items-center gap-1">
-                <div class="color-preview-wrap relative h-6 w-full cursor-default overflow-hidden rounded-md border-[0.5px] border-line-2">
-                  <input class="absolute inset-0 h-full w-full cursor-pointer border-0 p-0 opacity-0" type="color" id="bgcol1" value="#f8f8f6" />
-                  <div class="color-preview pointer-events-none absolute inset-0" id="colprev1" style="background:#f8f8f6"></div>
-                </div>
-                <span class="color-label text-[9.5px] text-text-2">From</span>
-              </div>
-              <div class="color-arrow flex shrink-0 scale-[0.85] text-text-3"><i data-lucide="arrow-right"></i></div>
-              <div class="color-slot flex flex-1 flex-col items-center gap-1">
-                <div class="color-preview-wrap relative h-6 w-full cursor-default overflow-hidden rounded-md border-[0.5px] border-line-2">
-                  <input class="absolute inset-0 h-full w-full cursor-pointer border-0 p-0 opacity-0" type="color" id="bgcol2" value="#eceae5" />
-                  <div class="color-preview pointer-events-none absolute inset-0" id="colprev2" style="background:#eceae5"></div>
-                </div>
-                <span class="color-label text-[9.5px] text-text-2">To</span>
+            <div class="flex items-center justify-between mb-2">
+              <div class="sp-label block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3" style="margin:0">Custom</div>
+              <div class="flex overflow-hidden rounded-md border-[0.5px] border-line-2 bg-[#0a0a0b]">
+                <button id="bg-mode-linear" class="bg-mode-btn h-[18px] cursor-default bg-panel-3 px-1.5 text-[9px] text-text font-medium" data-mode="linear">Linear</button>
+                <button id="bg-mode-mesh" class="bg-mode-btn h-[18px] cursor-default px-1.5 text-[9px] text-text-3 hover:text-text-2" data-mode="mesh">Mesh</button>
+                <button id="bg-mode-image" class="bg-mode-btn h-[18px] cursor-default px-1.5 text-[9px] text-text-3 hover:text-text-2" data-mode="image">Image</button>
               </div>
             </div>
-          </div>
-          <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
-            <div class="sp-row mb-1.5 flex items-center justify-between">
-              <span class="sp-label block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3" style="margin:0">Angle</span>
-              <span class="sp-val font-mono text-[10.5px] text-white/40 tabular-nums" id="bgangval">135°</span>
+
+            <!-- Linear gradient controls -->
+            <div id="bg-linear-controls">
+              <div class="color-row flex items-center gap-1.5">
+                <div class="color-slot flex flex-1 flex-col items-center gap-1">
+                  <div class="color-preview-wrap relative h-6 w-full cursor-default overflow-hidden rounded-md border-[0.5px] border-line-2">
+                    <input class="absolute inset-0 h-full w-full cursor-pointer border-0 p-0 opacity-0" type="color" id="bgcol1" value="#f8f8f6" />
+                    <div class="color-preview pointer-events-none absolute inset-0" id="colprev1" style="background:#f8f8f6"></div>
+                  </div>
+                  <span class="color-label text-[9.5px] text-text-2">From</span>
+                </div>
+                <div class="color-arrow flex shrink-0 scale-[0.85] text-text-3"><i data-lucide="arrow-right"></i></div>
+                <div class="color-slot flex flex-1 flex-col items-center gap-1">
+                  <div class="color-preview-wrap relative h-6 w-full cursor-default overflow-hidden rounded-md border-[0.5px] border-line-2">
+                    <input class="absolute inset-0 h-full w-full cursor-pointer border-0 p-0 opacity-0" type="color" id="bgcol2" value="#eceae5" />
+                    <div class="color-preview pointer-events-none absolute inset-0" id="colprev2" style="background:#eceae5"></div>
+                  </div>
+                  <span class="color-label text-[9.5px] text-text-2">To</span>
+                </div>
+              </div>
+              <div class="sp-row mt-2.5 mb-1.5 flex items-center justify-between">
+                <span class="sp-sublabel text-[11px] text-text-2">Angle</span>
+                <span class="sp-val font-mono text-[10.5px] text-white/40 tabular-nums" id="bgangval">135°</span>
+              </div>
+              <input type="range" id="bgang" min="0" max="360" value="135" step="1" />
             </div>
-            <input type="range" id="bgang" min="0" max="360" value="135" step="1" />
+
+            <!-- Mesh gradient controls -->
+            <div id="bg-mesh-controls" style="display:none">
+              <div class="grid grid-cols-2 gap-[5px]">
+                <div class="flex flex-col items-center gap-1">
+                  <div class="color-preview-wrap relative h-6 w-full cursor-default overflow-hidden rounded-md border-[0.5px] border-line-2">
+                    <input class="absolute inset-0 h-full w-full cursor-pointer border-0 p-0 opacity-0" type="color" id="meshcol-tl" value="#f8f8f6" />
+                    <div class="pointer-events-none absolute inset-0" id="meshprev-tl" style="background:#f8f8f6"></div>
+                  </div>
+                  <span class="text-[9px] text-text-3">Top left</span>
+                </div>
+                <div class="flex flex-col items-center gap-1">
+                  <div class="color-preview-wrap relative h-6 w-full cursor-default overflow-hidden rounded-md border-[0.5px] border-line-2">
+                    <input class="absolute inset-0 h-full w-full cursor-pointer border-0 p-0 opacity-0" type="color" id="meshcol-tr" value="#eceae5" />
+                    <div class="pointer-events-none absolute inset-0" id="meshprev-tr" style="background:#eceae5"></div>
+                  </div>
+                  <span class="text-[9px] text-text-3">Top right</span>
+                </div>
+                <div class="flex flex-col items-center gap-1">
+                  <div class="color-preview-wrap relative h-6 w-full cursor-default overflow-hidden rounded-md border-[0.5px] border-line-2">
+                    <input class="absolute inset-0 h-full w-full cursor-pointer border-0 p-0 opacity-0" type="color" id="meshcol-bl" value="#eceae5" />
+                    <div class="pointer-events-none absolute inset-0" id="meshprev-bl" style="background:#eceae5"></div>
+                  </div>
+                  <span class="text-[9px] text-text-3">Bottom left</span>
+                </div>
+                <div class="flex flex-col items-center gap-1">
+                  <div class="color-preview-wrap relative h-6 w-full cursor-default overflow-hidden rounded-md border-[0.5px] border-line-2">
+                    <input class="absolute inset-0 h-full w-full cursor-pointer border-0 p-0 opacity-0" type="color" id="meshcol-br" value="#f8f8f6" />
+                    <div class="pointer-events-none absolute inset-0" id="meshprev-br" style="background:#f8f8f6"></div>
+                  </div>
+                  <span class="text-[9px] text-text-3">Bottom right</span>
+                </div>
+              </div>
+              <div id="meshpreview" class="mt-2 h-8 w-full rounded-md border-[0.5px] border-line-2 overflow-hidden"></div>
+            </div>
+
+            <!-- Image upload controls -->
+            <div id="bg-image-controls" style="display:none">
+              <input type="file" id="bg-image-input" class="hidden" accept="image/*" />
+              <button id="bg-image-upload-btn" class="btn-3d btn-3d-dark flex h-8 w-full cursor-default items-center justify-center gap-1.5 rounded-lg px-2 text-[10.5px]">
+                <i data-lucide="upload"></i>
+                Upload image or screenshot
+              </button>
+              <div id="bg-image-preview-wrap" class="gone mt-2 relative overflow-hidden rounded-md border-[0.5px] border-line-2" style="aspect-ratio:16/9">
+                <img id="bg-image-preview" class="h-full w-full object-cover" src="" alt="" />
+                <button id="bg-image-clear" class="absolute top-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-md bg-black/60 text-white/70 hover:bg-black/80">
+                  <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l6 6M7 1L1 7"/></svg>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -407,6 +466,14 @@
 
         <div class="tabpanel flex-1 overflow-y-auto overflow-x-hidden" id="tab-zoom">
           <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
+            <div class="sp-label mb-2 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Easing</div>
+            <div class="grid grid-cols-3 gap-[5px]">
+              <button class="easing-btn btn-3d btn-3d-dark h-7 cursor-default rounded-lg px-1 text-[10px] text-text-2 font-medium" data-easing="snappy">Snappy</button>
+              <button class="easing-btn btn-3d btn-3d-dark h-7 cursor-default rounded-lg px-1 text-[10px] text-text-2 font-medium active-easing" data-easing="smooth" style="border-color:rgba(255,255,255,0.3);background:linear-gradient(180deg,#2e2e31 0%,#202023 52%,#151517 100%);color:rgba(255,255,255,0.85)">Smooth</button>
+              <button class="easing-btn btn-3d btn-3d-dark h-7 cursor-default rounded-lg px-1 text-[10px] text-text-2 font-medium" data-easing="cinematic">Cinema</button>
+            </div>
+          </div>
+          <div class="sp-section border-b border-line px-3 pt-3 pb-3.5">
             <div class="mb-2 flex items-center justify-between">
               <span class="block text-[9.5px] font-bold uppercase tracking-[0.5px] text-text-3">Zooms</span>
               <span id="zcount-empty" class="font-mono text-[10.5px] text-white/40 tabular-nums">0</span>
@@ -421,7 +488,7 @@
                 <span class="sp-sublabel text-[11px] text-text-2">Zoom level</span>
                 <span class="sp-val font-mono text-[10.5px] text-white/40 tabular-nums" id="zi-lvlval">2.6×</span>
               </div>
-              <input type="range" id="zi-lvl" min="1.2" max="5" value="2.6" step=".1" />
+              <input type="range" id="zi-lvl" min="1" max="5" value="2.6" step=".1" />
               <div class="sp-row mb-1.5 flex items-center justify-between" style="margin-top:10px">
                 <span class="sp-sublabel text-[11px] text-text-2">Duration</span>
                 <span class="sp-val font-mono text-[10.5px] text-white/40 tabular-nums" id="zi-durval">2.2s</span>
@@ -523,7 +590,15 @@
           <button class="speed-btn h-[22px] cursor-default bg-[#0a0a0b] px-1.5 text-[9.5px] text-text-3" data-speed="1.5">1.5×</button>
           <button class="speed-btn h-[22px] cursor-default bg-[#0a0a0b] px-1.5 text-[9.5px] text-text-3" data-speed="2">2×</button>
         </div>
-        <button id="addzoom" class="btn-3d btn-3d-dark ml-auto h-[22px] cursor-default rounded-md px-2 text-[10.5px]">+ Add zoom</button>
+        <div class="ml-auto flex items-center gap-1">
+          <button id="undobtn" title="Undo (⌘Z)" class="btn-3d btn-3d-dark h-[22px] cursor-default rounded-md px-1.5 text-[10.5px] disabled:opacity-30" disabled>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+          </button>
+          <button id="redobtn" title="Redo (⌘⇧Z)" class="btn-3d btn-3d-dark h-[22px] cursor-default rounded-md px-1.5 text-[10.5px] disabled:opacity-30" disabled>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/></svg>
+          </button>
+          <button id="addzoom" class="btn-3d btn-3d-dark h-[22px] cursor-default rounded-md px-2 text-[10.5px]">+ Add zoom</button>
+        </div>
       </div>
 
       <div id="track"

@@ -1,11 +1,11 @@
 import './main.css'
 import { startCapture, startMic, startCam, stopCapture, enumerateDevices } from './capture'
-import { initEditor, setBgCol, setBgAng, setRad, setPad, setShad, setShadop, setInset, setStrokeop, setVignette, setGrain, setMotion, setRatio, setZooms, draw, setCamVideo, setOverlay, getOverlay } from './editor'
-import type { Zoom } from './editor'
-import { dlWebm, toMp4, toGif } from './export'
+import { initEditor, setBgCol, setBgAng, setRad, setPad, setShad, setShadop, setInset, setStrokeop, setVignette, setGrain, setMotion, setRatio, setZooms, draw, setCamVideo, setOverlay, getOverlay, setEasing, setMeshCols, setBgImage } from './editor'
+import type { Zoom, EasingPreset } from './editor'
+import { toMp4, toGif } from './export'
 import type { Mp4Options } from './export'
-import { createIcons, Image, Frame, ZoomIn, Download, ArrowRight, RotateCcw, Video } from 'lucide'
-createIcons({ icons: { Image, Frame, ZoomIn, Download, ArrowRight, RotateCcw, Video } })
+import { createIcons, Image, Frame, ZoomIn, Download, ArrowRight, RotateCcw, Video, Upload } from 'lucide'
+createIcons({ icons: { Image, Frame, ZoomIn, Download, ArrowRight, RotateCcw, Video, Upload } })
 
 const app = document.getElementById('app') as HTMLDivElement
 const preview = document.getElementById('preview') as HTMLVideoElement
@@ -43,9 +43,6 @@ const wave = document.getElementById('wave') as HTMLDivElement
 const micwave = document.getElementById('micwave') as HTMLDivElement
 const mictrack = document.getElementById('mictrack') as HTMLDivElement
 const michead = document.getElementById('michead') as HTMLDivElement
-const prog = document.getElementById('prog') as HTMLDivElement
-const progbar = document.getElementById('progbar') as HTMLDivElement
-const progtxt = document.getElementById('progtxt') as HTMLSpanElement
 
 const bgcol1 = document.getElementById('bgcol1') as HTMLInputElement
 const bgcol2 = document.getElementById('bgcol2') as HTMLInputElement
@@ -160,6 +157,43 @@ let camBlobUrl: string | null = null
 let lastExportedBlob: Blob | null = null
 let lastExportedExt: string = 'webm'
 
+// ── Undo / redo ──────────────────────────────────────────────────────────────
+type ZoomSnapshot = Zoom[]
+const undoStack: ZoomSnapshot[] = []
+const redoStack: ZoomSnapshot[] = []
+
+function snapshotZooms(): void {
+  undoStack.push(JSON.parse(JSON.stringify(zooms)))
+  if (undoStack.length > 80) undoStack.shift()
+  redoStack.length = 0
+  syncUndoButtons()
+}
+
+function syncUndoButtons(): void {
+  const undobtn = document.getElementById('undobtn') as HTMLButtonElement | null
+  const redobtn = document.getElementById('redobtn') as HTMLButtonElement | null
+  if (undobtn) undobtn.disabled = undoStack.length === 0
+  if (redobtn) redobtn.disabled = redoStack.length === 0
+}
+
+function applyUndo(): void {
+  if (!undoStack.length) return
+  redoStack.push(JSON.parse(JSON.stringify(zooms)))
+  zooms = undoStack.pop()!
+  setZooms(zooms); selectZoom(null); syncZdots()
+  if (vid) draw(vid.currentTime)
+  syncUndoButtons()
+}
+
+function applyRedo(): void {
+  if (!redoStack.length) return
+  undoStack.push(JSON.parse(JSON.stringify(zooms)))
+  zooms = redoStack.pop()!
+  setZooms(zooms); selectZoom(null); syncZdots()
+  if (vid) draw(vid.currentTime)
+  syncUndoButtons()
+}
+
 function switchTab(name: string): void {
   tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === name))
   tabPanels.forEach(p => p.classList.toggle('active', p.id === 'tab-' + name))
@@ -258,8 +292,6 @@ async function openDevModal(): Promise<{ micId: string; camId: string } | null> 
 
   const devMicToggle = document.getElementById('dev-mic-toggle') as HTMLInputElement
   const devCamToggle = document.getElementById('dev-cam-toggle') as HTMLInputElement
-  const devMicRow = document.getElementById('dev-mic-row') as HTMLDivElement
-  const devCamRow = document.getElementById('dev-cam-row') as HTMLDivElement
 
   const syncRows = () => {
     devMicSel.style.opacity = devMicToggle.checked ? '1' : '0.3'
@@ -351,7 +383,7 @@ recbtn.onclick = async () => {
   activeMicStream = null
 
   const micPromise = devChoice.micId
-    ? startMic(devChoice.micId).then(m => { activeMicStream = m; hadMicDuringRecording = true }).catch(() => {})
+    ? startMic(devChoice.micId).then(m => { activeMicStream = m; hadMicDuringRecording = true }).catch(() => { })
     : Promise.resolve()
 
   activeCamStream = null
@@ -378,7 +410,7 @@ recbtn.onclick = async () => {
         camVideoEl.onloadedmetadata = () => res()
         setTimeout(res, 2000)
       })
-      await camVideoEl.play().catch(() => {})
+      await camVideoEl.play().catch(() => { })
       setCamVideo(camVideoEl)
       setOverlay({ visible: true })
       const camMime = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(t => MediaRecorder.isTypeSupported(t)) || ''
@@ -411,16 +443,17 @@ recbtn.onclick = async () => {
 
   let recStream: MediaStream
 
-  if (activeMicStream && activeMicStream.getAudioTracks().length > 0) {
+  const micStream = activeMicStream as MediaStream | null
+  if (micStream && micStream.getAudioTracks().length > 0) {
     const mixCtx = new AudioContext()
     const dest = mixCtx.createMediaStreamDestination()
     if (screenAudioTracks.length > 0) {
       const screenAudioStream = new MediaStream(screenAudioTracks)
       mixCtx.createMediaStreamSource(screenAudioStream).connect(dest)
     }
-    mixCtx.createMediaStreamSource(activeMicStream).connect(dest)
+    mixCtx.createMediaStreamSource(micStream).connect(dest)
     recStream = new MediaStream([...videoTracks, ...dest.stream.getAudioTracks()])
-    s.getVideoTracks()[0]?.addEventListener('ended', () => { mixCtx.close().catch(() => {}); stopbtn.click() }, { once: true })
+    s.getVideoTracks()[0]?.addEventListener('ended', () => { mixCtx.close().catch(() => { }); stopbtn.click() }, { once: true })
   } else {
     recStream = new MediaStream([...videoTracks, ...screenAudioTracks])
     s.getVideoTracks()[0]?.addEventListener('ended', () => stopbtn.click(), { once: true })
@@ -511,13 +544,13 @@ function syncCamPlayback(): void {
     if (Math.abs(camVideoEl.currentTime - vid.currentTime) > 0.15) {
       camVideoEl.currentTime = Math.min(vid.currentTime, camVideoEl.duration || vid.currentTime)
     }
-    camVideoEl.play().catch(() => {})
+    camVideoEl.play().catch(() => { })
   }
 }
 
 function finishOpenEditor(blob: Blob, duration: number): void {
-  if (audioCtxSource) { try { audioCtxSource.disconnect() } catch {} audioCtxSource = null }
-  if (audioCtx) { audioCtx.close().catch(() => {}); audioCtx = null }
+  if (audioCtxSource) { try { audioCtxSource.disconnect() } catch { } audioCtxSource = null }
+  if (audioCtx) { audioCtx.close().catch(() => { }); audioCtx = null }
   if (vid) { vid.pause(); vid.remove(); }
   if (vidUrl) URL.revokeObjectURL(vidUrl)
 
@@ -797,6 +830,7 @@ function selectZoom(idx: number | null): void {
 
 function deleteSelectedZoom(): void {
   if (selectedZoomIdx === null) return
+  snapshotZooms()
   const at = selectedZoomIdx
   zooms.splice(at, 1)
   setZooms(zooms)
@@ -841,6 +875,13 @@ document.addEventListener('keydown', e => {
   if (e.key === ' ' || e.code === 'Space') {
     e.preventDefault()
     if (vid) playbtn.click()
+    return
+  }
+
+  if ((e.key === 'z' || e.key === 'Z') && (e.metaKey || e.ctrlKey)) {
+    e.preventDefault()
+    if (e.shiftKey) applyRedo()
+    else applyUndo()
     return
   }
 
@@ -922,6 +963,7 @@ function syncZdots(): void {
         }
         const onUp = () => {
           const active = zoomDrag ? zooms[zoomDrag.idx] : null
+          if (active) snapshotZooms()
           zoomDrag = null
           if (active) {
             zooms.sort((a, b) => a.t - b.t)
@@ -963,6 +1005,7 @@ function syncZdots(): void {
       }
       const onUp = () => {
         if (moved) {
+          snapshotZooms()
           const active = zooms[idx]
           zooms.sort((a, b) => a.t - b.t)
           const newIdx = zooms.indexOf(active)
@@ -1064,6 +1107,124 @@ document.querySelectorAll<HTMLButtonElement>('.preset').forEach(btn => {
     colprev2.style.background = bgcol2.value
     setBgCol(bgcol1.value, bgcol2.value)
     setBgAng(Number(bgang.value))
+    // Presets snap back to linear mode
+    switchBgMode('linear')
+  }
+})
+
+// ── Background mode switcher ──────────────────────────────────────────────────
+const bgLinearControls = document.getElementById('bg-linear-controls')!
+const bgMeshControls = document.getElementById('bg-mesh-controls')!
+const bgImageControls = document.getElementById('bg-image-controls')!
+const bgModeBtns = document.querySelectorAll<HTMLButtonElement>('.bg-mode-btn')
+const bgImageInput = document.getElementById('bg-image-input') as HTMLInputElement
+const bgImageUploadBtn = document.getElementById('bg-image-upload-btn') as HTMLButtonElement
+const bgImagePreviewWrap = document.getElementById('bg-image-preview-wrap')!
+const bgImagePreview = document.getElementById('bg-image-preview') as HTMLImageElement
+const bgImageClear = document.getElementById('bg-image-clear') as HTMLButtonElement
+
+function switchBgMode(mode: 'linear' | 'mesh' | 'image'): void {
+  bgModeBtns.forEach(b => {
+    const active = b.dataset.mode === mode
+    b.classList.toggle('bg-panel-3', active)
+    b.classList.toggle('text-text', active)
+    b.classList.toggle('text-text-3', !active)
+  })
+  bgLinearControls.style.display = mode === 'linear' ? '' : 'none'
+  bgMeshControls.style.display = mode === 'mesh' ? '' : 'none'
+  bgImageControls.style.display = mode === 'image' ? '' : 'none'
+}
+
+bgModeBtns.forEach(btn => {
+  btn.onclick = () => {
+    const mode = btn.dataset.mode as 'linear' | 'mesh' | 'image'
+    switchBgMode(mode)
+    if (mode === 'linear') {
+      setBgCol(bgcol1.value, bgcol2.value)
+      setBgAng(Number(bgang.value))
+    } else if (mode === 'mesh') {
+      syncMeshGradient()
+    }
+    // image mode: keep whatever is already set until user uploads
+  }
+})
+
+// ── Mesh gradient ─────────────────────────────────────────────────────────────
+const meshInputs: Record<string, HTMLInputElement> = {
+  tl: document.getElementById('meshcol-tl') as HTMLInputElement,
+  tr: document.getElementById('meshcol-tr') as HTMLInputElement,
+  bl: document.getElementById('meshcol-bl') as HTMLInputElement,
+  br: document.getElementById('meshcol-br') as HTMLInputElement,
+}
+const meshPreviews: Record<string, HTMLElement> = {
+  tl: document.getElementById('meshprev-tl')!,
+  tr: document.getElementById('meshprev-tr')!,
+  bl: document.getElementById('meshprev-bl')!,
+  br: document.getElementById('meshprev-br')!,
+}
+const meshCanvas = document.getElementById('meshpreview') as HTMLDivElement
+
+function syncMeshGradient(): void {
+  const cols: [string, string, string, string] = [
+    meshInputs.tl.value,
+    meshInputs.tr.value,
+    meshInputs.bl.value,
+    meshInputs.br.value,
+  ]
+  // Update mini preview via inline CSS gradient approximation
+  meshCanvas.style.background = `
+    radial-gradient(circle at 0% 0%, ${cols[0]} 0%, transparent 60%),
+    radial-gradient(circle at 100% 0%, ${cols[1]} 0%, transparent 60%),
+    radial-gradient(circle at 0% 100%, ${cols[2]} 0%, transparent 60%),
+    radial-gradient(circle at 100% 100%, ${cols[3]} 0%, transparent 60%)`
+  setMeshCols(cols)
+}
+
+Object.entries(meshInputs).forEach(([key, input]) => {
+  input.oninput = () => {
+    meshPreviews[key].style.background = input.value
+    syncMeshGradient()
+  }
+})
+
+// ── Background image ──────────────────────────────────────────────────────────
+bgImageUploadBtn.onclick = () => bgImageInput.click()
+
+bgImageInput.onchange = () => {
+  const file = bgImageInput.files?.[0]
+  bgImageInput.value = ''
+  if (!file || !file.type.startsWith('image/')) return
+  const url = URL.createObjectURL(file)
+  const img = new window.Image()
+  img.onload = () => {
+    bgImagePreview.src = url
+    bgImagePreviewWrap.classList.remove('gone')
+    setBgImage(img)
+  }
+  img.src = url
+}
+
+bgImageClear.onclick = () => {
+  bgImagePreview.src = ''
+  bgImagePreviewWrap.classList.add('gone')
+  setBgImage(null)
+  // Restore linear
+  switchBgMode('linear')
+  setBgCol(bgcol1.value, bgcol2.value)
+  setBgAng(Number(bgang.value))
+}
+
+// ── Easing preset ─────────────────────────────────────────────────────────────
+document.querySelectorAll<HTMLButtonElement>('.easing-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll<HTMLButtonElement>('.easing-btn').forEach(b => {
+      b.style.borderColor = ''
+      b.style.color = ''
+      b.style.background = ''
+    })
+    btn.style.borderColor = 'rgba(255,255,255,0.3)'
+    btn.style.color = 'rgba(255,255,255,0.85)'
+    setEasing(btn.dataset.easing as EasingPreset)
   }
 })
 
@@ -1081,8 +1242,8 @@ document.querySelectorAll<HTMLElement>('.ratio-btn').forEach(btn => {
 })
 
 again.onclick = () => {
-  if (audioCtxSource) { try { audioCtxSource.disconnect() } catch {} audioCtxSource = null }
-  if (audioCtx) { audioCtx.close().catch(() => {}); audioCtx = null }
+  if (audioCtxSource) { try { audioCtxSource.disconnect() } catch { } audioCtxSource = null }
+  if (audioCtx) { audioCtx.close().catch(() => { }); audioCtx = null }
   if (vid) { vid.pause(); vid.remove(); }
   if (vidUrl) { URL.revokeObjectURL(vidUrl); vidUrl = null }
   if (camBlobUrl) { URL.revokeObjectURL(camBlobUrl); camBlobUrl = null }
@@ -1185,14 +1346,14 @@ scaleinput.oninput = () => {
 
 function getMp4Options(): Mp4Options {
   return [
-    { crf: 28, preset: 'veryfast', fps: exportFps },
-    { crf: 20, preset: 'fast',     fps: exportFps },
-    { crf: 16, preset: 'medium',   fps: exportFps }
+    { crf: 22, preset: 'fast',   fps: exportFps },
+    { crf: 17, preset: 'slow',   fps: exportFps },
+    { crf: 13, preset: 'slow',   fps: exportFps }
   ][exportQuality] as Mp4Options
 }
 
 function getVideoBitsPerSecond(): number {
-  return [6_000_000, 12_000_000, 20_000_000][exportQuality] || 12_000_000
+  return [10_000_000, 18_000_000, 28_000_000][exportQuality] || 18_000_000
 }
 
 dlpng.onclick = async () => {
@@ -1280,6 +1441,7 @@ async function renderEditedBlob(onProgress?: (pct: number, phase?: string) => vo
 
 function addZoomAt(nx: number, ny: number): void {
   if (!vid) return
+  snapshotZooms()
   lastZoomTarget = { nx, ny }
   const newZoom: Zoom = { t: vid.currentTime, nx, ny, dur: defaultDur, zoomlvl: 2.6 }
   zooms.push(newZoom); zooms.sort((a, b) => a.t - b.t)
@@ -1289,12 +1451,18 @@ function addZoomAt(nx: number, ny: number): void {
 }
 
 function clearAllZooms(): void {
+  if (zooms.length) snapshotZooms()
   zooms = []
   setZooms(zooms); selectZoom(null); syncZdots()
   if (vid) draw(vid.currentTime)
 }
 
 clearzooms.onclick = clearAllZooms
+
+const undobtn = document.getElementById('undobtn') as HTMLButtonElement
+const redobtn = document.getElementById('redobtn') as HTMLButtonElement
+undobtn.onclick = applyUndo
+redobtn.onclick = applyRedo
 
 document.querySelectorAll<HTMLButtonElement>('.speed-btn').forEach(btn => {
   btn.onclick = () => {
@@ -1335,14 +1503,14 @@ function syncCamTabFromOverlay(): void {
   camCornerBtns.forEach(b => b.classList.toggle('active', b.dataset.corner === ov.corner))
   if (camVideoEl && activeCamStream) {
     camPreviewVid.srcObject = activeCamStream
-    camPreviewVid.play().catch(() => {})
+    camPreviewVid.play().catch(() => { })
     camPreviewWrap.classList.remove('gone')
     camNoSignal.classList.add('gone')
   } else if (camVideoEl && camBlobUrl) {
     camPreviewVid.srcObject = null
     camPreviewVid.src = camBlobUrl
     camPreviewVid.muted = true
-    camPreviewVid.play().catch(() => {})
+    camPreviewVid.play().catch(() => { })
     camPreviewWrap.classList.remove('gone')
     camNoSignal.classList.add('gone')
   } else {

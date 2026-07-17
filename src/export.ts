@@ -71,7 +71,7 @@ export async function toMp4(
   options: Mp4Options,
   onProg: (n: number) => void,
   onLog: (s: string) => void
-): Promise<void> {
+): Promise<Blob> {
   const ff = await getFF(onLog)
 
   ff.on('progress', ({ progress }) => {
@@ -85,19 +85,24 @@ export async function toMp4(
 
   await ff.exec([
     '-y',
-    '-fflags', '+genpts',
+    '-fflags', '+genpts+igndts',
     '-i', 'input.webm',
+    '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2',
     '-c:v', 'libx264',
     '-crf', String(options.crf),
     '-preset', options.preset,
+    '-profile:v', 'main',
+    '-level', '4.0',
     '-r', String(options.fps),
     '-vsync', 'cfr',
+    '-g', String(options.fps * 2),
     '-c:a', 'aac',
     '-b:a', '192k',
+    '-ar', '48000',
     '-ac', '2',
     '-pix_fmt', 'yuv420p',
     '-movflags', '+faststart',
-    '-tune', 'animation',
+    '-max_muxing_queue_size', '9999',
     'output.mp4',
   ])
 
@@ -108,18 +113,18 @@ export async function toMp4(
   }
 
   const out = new Uint8Array(data)
+  const blob = new Blob([out], { type: 'video/mp4' })
 
-  download(
-    new Blob([out], { type: 'video/mp4' }),
-    'glare.mp4'
-  )
+  download(blob, `glare-export-${Date.now()}.mp4`)
+
+  return blob
 }
 
 export async function toGif(
   input: Blob | Blob[],
   onProg: (n: number) => void,
   onLog: (s: string) => void
-): Promise<void> {
+): Promise<Blob> {
   const ff = await getFF(onLog)
 
   ff.on('progress', ({ progress }) => {
@@ -133,12 +138,14 @@ export async function toGif(
 
   await ff.exec([
     '-y',
+    '-fflags', '+genpts+igndts',
     '-i',
     'input.webm',
     '-vf',
-    'fps=15,scale=960:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse',
+    'scale=trunc(iw/2)*2:trunc(ih/2)*2,fps=18,scale=800:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=192:reserve_transparent=0[p];[s1][p]paletteuse=dither=bayer:bayer_scale=4',
     '-loop',
     '0',
+    '-max_muxing_queue_size', '9999',
     'output.gif',
   ])
 
@@ -149,11 +156,9 @@ export async function toGif(
   }
 
   const out = new Uint8Array(data)
+  const blob = new Blob([out], { type: 'image/gif' })
 
-  download(
-    new Blob([out], {
-      type: 'image/gif',
-    }),
-    'glare.gif'
-  )
+  download(blob, `glare-export-${Date.now()}.gif`)
+
+  return blob
 }

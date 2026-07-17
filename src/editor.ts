@@ -15,6 +15,8 @@ export interface CamOverlay {
   visible: boolean
 }
 
+export type EasingPreset = 'smooth' | 'snappy' | 'cinematic'
+
 interface Camera { scale: number; nx: number; ny: number }
 
 let cv: HTMLCanvasElement
@@ -37,6 +39,11 @@ let motion = 55
 let ratio = 16 / 9
 let zooms: Zoom[] = []
 const shutter = 1 / 35
+let easingPreset: EasingPreset = 'smooth'
+
+let meshMode = false
+let meshCols: [string, string, string, string] = ['#f8f8f6', '#eceae5', '#eceae5', '#f8f8f6']
+let bgImage: HTMLImageElement | null = null
 
 let overlay: CamOverlay = { corner: 'br', size: 22, rad: 50, pad: 28, visible: false }
 
@@ -66,7 +73,7 @@ function updateSize(): void {
   cv.height = Math.round(cssH * dpr)
 }
 
-export function setBgCol(c1: string, c2: string): void { col1 = c1; col2 = c2; draw() }
+export function setBgCol(c1: string, c2: string): void { meshMode = false; bgImage = null; col1 = c1; col2 = c2; draw() }
 export function setBgAng(a: number): void { ang = a; draw() }
 export function setRad(n: number): void { rad = n; draw() }
 export function setPad(n: number): void { pad = n; draw() }
@@ -78,6 +85,7 @@ export function setStrokeop(n: number): void { strokeop = n; draw() }
 export function setVignette(n: number): void { vignette = n; draw() }
 export function setGrain(n: number): void { grain = n; draw() }
 export function setMotion(n: number): void { motion = n; draw() }
+export function setEasing(p: EasingPreset): void { easingPreset = p; draw() }
 export function setRatio(r: number | 'original'): void {
   if (r === 'original') {
     ratio = src.videoWidth && src.videoHeight ? src.videoWidth / src.videoHeight : 16 / 9
@@ -88,6 +96,67 @@ export function setRatio(r: number | 'original'): void {
 }
 export function setZooms(next: Zoom[]): void { zooms = next }
 export function handleResize(): void { updateSize(); draw() }
+
+export function setMeshCols(cols: [string, string, string, string]): void {
+  meshMode = true; bgImage = null; meshCols = cols; draw()
+}
+
+export function setBgImage(img: HTMLImageElement | null): void {
+  bgImage = img; meshMode = false; draw()
+}
+
+function hexToRgb(hex: string): [number, number, number] {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return [r, g, b]
+}
+
+function drawMeshGradient(ox: number, oy: number, w: number, h: number): void {
+  const tl = hexToRgb(meshCols[0])
+  const tr = hexToRgb(meshCols[1])
+  const bl = hexToRgb(meshCols[2])
+  const br = hexToRgb(meshCols[3])
+  const steps = Math.ceil(Math.max(w, h) / 4)
+  const sw = w / steps
+  const sh = h / steps
+  for (let yi = 0; yi < steps; yi++) {
+    for (let xi = 0; xi < steps; xi++) {
+      const tx = (xi + 0.5) / steps
+      const ty = (yi + 0.5) / steps
+      const r = Math.round(tl[0] * (1 - tx) * (1 - ty) + tr[0] * tx * (1 - ty) + bl[0] * (1 - tx) * ty + br[0] * tx * ty)
+      const g = Math.round(tl[1] * (1 - tx) * (1 - ty) + tr[1] * tx * (1 - ty) + bl[1] * (1 - tx) * ty + br[1] * tx * ty)
+      const b = Math.round(tl[2] * (1 - tx) * (1 - ty) + tr[2] * tx * (1 - ty) + bl[2] * (1 - tx) * ty + br[2] * tx * ty)
+      ctx.fillStyle = `rgb(${r},${g},${b})`
+      ctx.fillRect(ox + xi * sw, oy + yi * sh, Math.ceil(sw) + 1, Math.ceil(sh) + 1)
+    }
+  }
+}
+
+function drawBackground(ox: number, oy: number, w: number, h: number): void {
+  if (bgImage) {
+    const ir = bgImage.naturalWidth / bgImage.naturalHeight
+    const cr = w / h
+    let sx = 0, sy = 0, sw = bgImage.naturalWidth, sh = bgImage.naturalHeight
+    if (ir > cr) { sw = sh * cr; sx = (bgImage.naturalWidth - sw) / 2 }
+    else { sh = sw / cr; sy = (bgImage.naturalHeight - sh) / 2 }
+    ctx.drawImage(bgImage, sx, sy, sw, sh, ox, oy, w, h)
+    return
+  }
+  if (meshMode) {
+    drawMeshGradient(ox, oy, w, h)
+    return
+  }
+  const rad2 = ang * Math.PI / 180
+  const gx1 = ox + w / 2 - Math.cos(rad2) * w / 2
+  const gy1 = oy + h / 2 - Math.sin(rad2) * h / 2
+  const gx2 = ox + w / 2 + Math.cos(rad2) * w / 2
+  const gy2 = oy + h / 2 + Math.sin(rad2) * h / 2
+  const g = ctx.createLinearGradient(gx1, gy1, gx2, gy2)
+  g.addColorStop(0, col1); g.addColorStop(1, col2)
+  ctx.fillStyle = g
+  ctx.fillRect(ox, oy, w, h)
+}
 
 export function draw(time = src?.currentTime || 0): void {
   const W = cv.width
@@ -102,27 +171,14 @@ export function draw(time = src?.currentTime || 0): void {
   const ix = (W - iw) / 2
   const iy = (H - ih) / 2
 
-  const rad2 = ang * Math.PI / 180
-  const makeGradient = (ox: number, oy: number, w: number, h: number) => {
-    const gx1 = ox + w / 2 - Math.cos(rad2) * w / 2
-    const gy1 = oy + h / 2 - Math.sin(rad2) * h / 2
-    const gx2 = ox + w / 2 + Math.cos(rad2) * w / 2
-    const gy2 = oy + h / 2 + Math.sin(rad2) * h / 2
-    const g = ctx.createLinearGradient(gx1, gy1, gx2, gy2)
-    g.addColorStop(0, col1); g.addColorStop(1, col2)
-    return g
-  }
-
   if (camera.scale > 1) {
     ctx.save()
     applyCameraTransform(camera, W, H)
     const margin = W
-    ctx.fillStyle = makeGradient(-margin, -margin, W + margin * 2, H + margin * 2)
-    ctx.fillRect(-margin, -margin, W + margin * 2, H + margin * 2)
+  drawBackground(-margin, -margin, W + margin * 2, H + margin * 2)
     ctx.restore()
   } else {
-    ctx.fillStyle = makeGradient(0, 0, W, H)
-    ctx.fillRect(0, 0, W, H)
+  drawBackground(0, 0, W, H)
   }
 
   if (shad > 0) {
@@ -180,7 +236,7 @@ export function draw(time = src?.currentTime || 0): void {
   }
 
   if (overlay.visible && camVid && camVid.readyState >= 2) {
-    drawCamOverlay(W, H, camera, getZoomProgress(time))
+    drawCamOverlay(W, H, getZoomProgress(time))
   }
 }
 
@@ -188,23 +244,17 @@ function getZoomProgress(time: number): { t: number; camZoomScale: number } {
   const active = [...zooms].reverse().find(z => time >= z.t - .06 && time <= z.t + z.dur)
   if (!active) return { t: 0, camZoomScale: 1 }
   const total = active.dur
-  const zoomIn = Math.min(0.5, total * 0.22)
-  const zoomOut = Math.min(0.6, total * 0.28)
-  const hold = total - zoomIn - zoomOut
+  const { zoomIn, zoomOut, hold } = getZoomPhases(total)
   const local = Math.max(0, time - active.t)
   if (local >= total) return { t: 0, camZoomScale: active.camZoomScale ?? 1 }
   let t = 0
-  if (local < zoomIn) {
-    t = easeInOut(local / zoomIn)
-  } else if (local < zoomIn + hold) {
-    t = 1
-  } else {
-    t = 1 - easeInOut((local - zoomIn - hold) / zoomOut)
-  }
+  if (local < zoomIn) t = applyEasing(local / zoomIn)
+  else if (local < zoomIn + hold) t = 1
+  else t = 1 - applyEasing((local - zoomIn - hold) / zoomOut)
   return { t, camZoomScale: active.camZoomScale ?? 1 }
 }
 
-function drawCamOverlay(W: number, H: number, camera: Camera, zoomProgress: { t: number; camZoomScale: number }): void {
+function drawCamOverlay(W: number, H: number, zoomProgress: { t: number; camZoomScale: number }): void {
   if (!camVid) return
   const { t: zt, camZoomScale } = zoomProgress
   const effectiveCamScale = lerp(1, camZoomScale, zt)
@@ -276,24 +326,44 @@ function getMotionFrames(time: number, W: number, H: number): { camera: Camera; 
   ]
 }
 
+function getZoomPhases(total: number): { zoomIn: number; zoomOut: number; hold: number } {
+  let zoomIn: number, zoomOut: number
+  if (easingPreset === 'snappy') {
+    zoomIn = Math.min(0.25, total * 0.14)
+    zoomOut = Math.min(0.3, total * 0.18)
+  } else if (easingPreset === 'cinematic') {
+    zoomIn = Math.min(0.9, total * 0.38)
+    zoomOut = Math.min(1.1, total * 0.44)
+  } else {
+    zoomIn = Math.min(0.5, total * 0.22)
+    zoomOut = Math.min(0.6, total * 0.28)
+  }
+  return { zoomIn, zoomOut, hold: Math.max(0, total - zoomIn - zoomOut) }
+}
+
+function applyEasing(t: number): number {
+  const x = clamp(t, 0, 1)
+  if (easingPreset === 'snappy') {
+    return x === 0 ? 0 : Math.pow(2, -8 * (1 - x))
+  }
+  if (easingPreset === 'cinematic') {
+    return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2
+  }
+  return x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2
+}
+
 function getCamera(time: number): Camera {
   const active = [...zooms].reverse().find(z => time >= z.t - .06 && time <= z.t + z.dur)
   if (!active) return { scale: 1, nx: .5, ny: .5 }
   const effectiveZoom = active.zoomlvl ?? zoomlvl
   const total = active.dur
-  const zoomIn = Math.min(0.5, total * 0.22)
-  const zoomOut = Math.min(0.6, total * 0.28)
-  const hold = total - zoomIn - zoomOut
+  const { zoomIn, zoomOut, hold } = getZoomPhases(total)
   const local = Math.max(0, time - active.t)
   if (local >= total) return { scale: 1, nx: .5, ny: .5 }
   let t = 0
-  if (local < zoomIn) {
-    t = easeInOut(local / zoomIn)
-  } else if (local < zoomIn + hold) {
-    t = 1
-  } else {
-    t = 1 - easeInOut((local - zoomIn - hold) / zoomOut)
-  }
+  if (local < zoomIn) t = applyEasing(local / zoomIn)
+  else if (local < zoomIn + hold) t = 1
+  else t = 1 - applyEasing((local - zoomIn - hold) / zoomOut)
   return {
     scale: lerp(1, effectiveZoom, t),
     nx: lerp(.5, active.nx, t),
@@ -313,11 +383,6 @@ function rrect(x: number, y: number, w: number, h: number, r: number): void {
   ctx.lineTo(x, y + rr)
   ctx.quadraticCurveTo(x, y, x + rr, y)
   ctx.closePath()
-}
-
-function easeInOut(t: number): number {
-  const x = clamp(t, 0, 1)
-  return x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2
 }
 
 function lerp(a: number, b: number, t: number): number { return a + (b - a) * t }
